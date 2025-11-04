@@ -1,60 +1,60 @@
 /**
  * Home Page - Dashboard
- * 首頁 - 儀表板總覽
+ * Dashboard overview page
  * 
- * 顯示：
- * - 當月批次狀態
- * - 異常比率
- * - USDC 成本
- * - 成功率
+ * Displays:
+ * - Current month batch status
+ * - Anomaly ratio
+ * - USDC cost
+ * - Success rate
  */
 
 export default function Home() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">儀表板</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Arc Payroll 薪資管理系統總覽
+          Arc Payroll Management System Overview
         </p>
       </div>
 
-      {/* 統計卡片 */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="當月批次"
+          title="This Month"
           value="2"
-          subtitle="已完成 1 筆"
+          subtitle="1 completed"
           color="blue"
         />
         <StatCard
-          title="總發放金額"
+          title="Total Distributed"
           value="45,000"
           subtitle="USDC"
           color="green"
         />
         <StatCard
-          title="成功率"
+          title="Success Rate"
           value="98.5%"
-          subtitle="147/149 筆成功"
+          subtitle="147/149 successful"
           color="purple"
         />
         <StatCard
-          title="異常偵測"
+          title="Anomalies"
           value="3"
-          subtitle="需要審核"
+          subtitle="Needs review"
           color="orange"
         />
       </div>
 
-      {/* 最近批次 */}
+      {/* Recent Batches */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            最近批次
+            Recent Batches
           </h3>
           <div className="text-sm text-gray-500">
-            即將推出：最近批次列表...
+            Coming soon: Recent batch list...
           </div>
         </div>
       </div>
@@ -62,7 +62,7 @@ export default function Home() {
   )
 }
 
-// 統計卡片組件
+// Statistics Card Component
 function StatCard({
   title,
   value,
@@ -93,4 +93,3 @@ function StatCard({
     </div>
   )
 }
-

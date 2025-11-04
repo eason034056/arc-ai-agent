@@ -1,210 +1,210 @@
 # Arc Payroll System
 
 > **AI-Powered Payroll Management on Arc Testnet**  
-> 基於 LangGraph 的自動化薪資發放系統，整合智慧合約批次打款、Slack 審批、異常偵測與對賬監控。
+> Automated payroll distribution system based on LangGraph, integrating smart contract batch payments, Slack approval, anomaly detection, and reconciliation monitoring.
 
 ---
 
-## 🎯 專案概述
+## 🎯 Project Overview
 
-Arc Payroll 是一個端到端的自動化薪資發放系統，運行在 Arc 測試網上：
+Arc Payroll is an end-to-end automated payroll distribution system running on Arc Testnet:
 
-- **AI Agent（Python + LangGraph）**：自動化工作流程，包含資料匯入、清洗、計算、異常偵測、審批、上鏈發薪、對賬
-- **智慧合約（Solidity）**：`PayrollVault.sol` 支援批次發薪、角色權限、暫停機制
-- **管理 UI（Next.js）**：儀表板、批次管理、報表下載
-- **監控（Prometheus + Grafana）**：系統指標、效能監控、告警
+- **AI Agent (Python + LangGraph)**: Automated workflow including data ingestion, cleaning, computation, anomaly detection, approval, on-chain payouts, and reconciliation
+- **Smart Contract (Solidity)**: `PayrollVault.sol` supporting batch payouts, role-based permissions, and pause mechanisms
+- **Management UI (Next.js)**: Dashboard, batch management, and report downloads
+- **Monitoring (Prometheus + Grafana)**: System metrics, performance monitoring, and alerting
 
-## 📁 專案結構
+## 📁 Project Structure
 
 ```
 arc-ai-agent/
-├── backend/                    # Python 後端 + AI Agent
+├── backend/                    # Python backend + AI Agent
 │   ├── app/
-│   │   ├── agent/             # LangGraph 工作流
-│   │   ├── api/               # FastAPI 端點
-│   │   ├── core/              # 配置與日誌
-│   │   ├── db/                # 資料庫模型
-│   │   ├── onchain/           # Web3 整合
-│   │   ├── slack/             # Slack 整合
-│   │   ├── expense/           # 費用回寫
-│   │   └── payroll/           # 薪資業務邏輯
-│   ├── abi/                   # 智慧合約 ABI
-│   ├── migrations/            # Alembic 遷移
-│   ├── scripts/               # 工具腳本
-│   ├── docs/                  # 詳細文檔
-│   └── docker-compose.yml     # Docker 編排
-├── contracts/                  # Solidity 智慧合約
-│   ├── contracts/             # 合約原始碼
-│   ├── scripts/               # 部署腳本
-│   └── hardhat.config.ts      # Hardhat 配置
-├── frontend/                   # Next.js 管理介面
-│   ├── src/app/               # 頁面與組件
-│   └── Dockerfile             # 前端容器
-├── ops/                        # 監控配置
-│   └── prometheus.yml         # Prometheus 配置
-└── Makefile                    # 一鍵指令
+│   │   ├── agent/             # LangGraph workflow
+│   │   ├── api/               # FastAPI endpoints
+│   │   ├── core/              # Configuration and logging
+│   │   ├── db/                # Database models
+│   │   ├── onchain/           # Web3 integration
+│   │   ├── slack/             # Slack integration
+│   │   ├── expense/           # Expense writeback
+│   │   └── payroll/           # Payroll business logic
+│   ├── abi/                   # Smart contract ABIs
+│   ├── migrations/            # Alembic migrations
+│   ├── scripts/               # Utility scripts
+│   ├── docs/                  # Detailed documentation
+│   └── docker-compose.yml     # Docker orchestration
+├── contracts/                  # Solidity smart contracts
+│   ├── contracts/             # Contract source code
+│   ├── scripts/               # Deployment scripts
+│   └── hardhat.config.ts      # Hardhat configuration
+├── frontend/                   # Next.js management interface
+│   ├── src/app/               # Pages and components
+│   └── Dockerfile             # Frontend container
+├── ops/                        # Monitoring configuration
+│   └── prometheus.yml         # Prometheus configuration
+└── Makefile                    # One-click commands
 ```
 
-## 🚀 快速開始
+## 🚀 Quick Start
 
-### 前置需求
+### Prerequisites
 
 - Docker & Docker Compose
-- Node.js 20+ (用於合約開發)
-- Python 3.11+ (本地開發時)
+- Node.js 20+ (for contract development)
+- Python 3.11+ (for local development)
 
-### 1. 初始設定
+### 1. Initial Setup
 
 ```bash
-# 複製環境變數並編輯
+# Copy and edit environment variables
 make setup
 
-# 編輯以下文件：
-# - backend/.env       (資料庫、Slack、Arc RPC、私鑰等)
-# - contracts/.env     (合約部署參數)
-# - frontend/.env      (後端 API URL)
+# Edit the following files:
+# - backend/.env       (Database, Slack, Arc RPC, Private Key, etc.)
+# - contracts/.env     (Contract deployment parameters)
+# - frontend/.env      (Backend API URL)
 ```
 
-### 2. 部署智慧合約
+### 2. Deploy Smart Contract
 
 ```bash
-# 安裝依賴並編譯
+# Install dependencies and compile
 make contracts-install
 make contracts-compile
 
-# 部署到 Arc Testnet
+# Deploy to Arc Testnet
 make contracts-deploy
 
-# 記得更新 backend/.env 中的 PAYROLL_CONTRACT_ADDRESS
+# Remember to update PAYROLL_CONTRACT_ADDRESS in backend/.env
 ```
 
-### 3. 啟動系統
+### 3. Start the System
 
 ```bash
-# 啟動所有服務（後端 + 前端）
+# Start all services (backend + frontend)
 make up-all
 
-# 或分別啟動
-make backend-up    # 後端 API + DB + Redis + 監控
-make frontend-up   # 前端 UI
+# Or start separately
+make backend-up    # Backend API + DB + Redis + Monitoring
+make frontend-up   # Frontend UI
 ```
 
-### 4. 初始化資料
+### 4. Initialize Data
 
 ```bash
-# 執行資料庫遷移
+# Run database migrations
 make backend-migrate
 
-# 填充測試資料（可選）
+# Seed test data (optional)
 make backend-seed
 ```
 
-### 5. 訪問服務
+### 5. Access Services
 
-- **後端 API**: http://localhost:8080
-- **前端 UI**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **Frontend UI**: http://localhost:3000
 - **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (端口衝突，需調整)
+- **Grafana**: http://localhost:3000 (port conflict, needs adjustment)
 
-## 📖 詳細文檔
+## 📖 Detailed Documentation
 
-更多詳細資訊請參考：
+For more information, see:
 
-- [**QUICKSTART.md**](backend/docs/QUICKSTART.md) - 詳細快速開始指南
-- [**PROJECT_SUMMARY.md**](backend/docs/PROJECT_SUMMARY.md) - 專案架構總覽
-- [**INDEX.md**](backend/docs/INDEX.md) - 文檔索引
-- [**Backend README**](backend/README.md) - 後端開發指南
-- [**Contracts README**](contracts/README.md) - 智慧合約說明
-- [**Frontend README**](frontend/README.md) - 前端開發指南
+- [**QUICKSTART.md**](backend/docs/QUICKSTART.md) - Detailed quick start guide
+- [**PROJECT_SUMMARY.md**](backend/docs/PROJECT_SUMMARY.md) - Project architecture overview
+- [**INDEX.md**](backend/docs/INDEX.md) - Documentation index
+- [**Backend README**](backend/README.md) - Backend development guide
+- [**Contracts README**](contracts/README.md) - Smart contract documentation
+- [**Frontend README**](frontend/README.md) - Frontend development guide
 
-## 🔧 常用指令
+## 🔧 Common Commands
 
 ```bash
-# 查看所有可用指令
+# View all available commands
 make help
 
-# 系統管理
-make up-all          # 啟動所有服務
-make down-all        # 停止所有服務
-make logs            # 查看日誌
-make restart         # 重啟所有服務
-make status          # 查看系統狀態
-make clean           # 清理所有容器和資料
+# System Management
+make up-all          # Start all services
+make down-all        # Stop all services
+make logs            # View logs
+make restart         # Restart all services
+make status          # Check system status
+make clean           # Clean all containers and data
 
-# 後端開發
-make backend-up      # 啟動後端
-make backend-logs    # 查看後端日誌
-make backend-shell   # 進入後端容器
-make backend-test    # 執行測試
+# Backend Development
+make backend-up      # Start backend
+make backend-logs    # View backend logs
+make backend-shell   # Enter backend container
+make backend-test    # Run tests
 
-# 前端開發
-make frontend-dev    # 啟動前端開發伺服器（熱重載）
-make frontend-lint   # 執行 lint 檢查
+# Frontend Development
+make frontend-dev    # Start frontend dev server (hot reload)
+make frontend-lint   # Run lint checks
 
-# 合約開發
-make contracts-compile  # 編譯合約
-make contracts-deploy   # 部署合約
+# Contract Development
+make contracts-compile  # Compile contracts
+make contracts-deploy   # Deploy contracts
 ```
 
-## 🔄 工作流程
+## 🔄 Workflow
 
 ```mermaid
 graph LR
-    A[資料匯入] --> B[資料清洗]
-    B --> C[薪資計算]
-    C --> D[異常偵測]
-    D --> E[生成摘要]
-    E --> F[Slack 審批]
-    F --> G{審批結果}
-    G -->|批准| H[上鏈發薪]
-    G -->|拒絕| I[結束]
-    H --> J[費用回寫]
-    J --> K[對賬監控]
-    K --> L[完成]
+    A[Data Ingestion] --> B[Data Cleaning]
+    B --> C[Payroll Computation]
+    C --> D[Anomaly Detection]
+    D --> E[Generate Summary]
+    E --> F[Slack Approval]
+    F --> G{Approval Result}
+    G -->|Approve| H[On-chain Payout]
+    G -->|Reject| I[End]
+    H --> J[Expense Writeback]
+    J --> K[Reconciliation]
+    K --> L[Complete]
 ```
 
-## 🏗️ 技術棧
+## 🏗️ Tech Stack
 
-### 後端
-- **框架**: FastAPI
-- **AI/工作流**: LangGraph
-- **資料庫**: PostgreSQL
-- **快取**: Redis
-- **區塊鏈**: web3.py
-- **監控**: Prometheus + Grafana
+### Backend
+- **Framework**: FastAPI
+- **AI/Workflow**: LangGraph
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Blockchain**: web3.py
+- **Monitoring**: Prometheus + Grafana
 
-### 智慧合約
-- **語言**: Solidity 0.8.24
-- **工具鏈**: Hardhat
-- **函式庫**: OpenZeppelin
+### Smart Contracts
+- **Language**: Solidity 0.8.24
+- **Toolchain**: Hardhat
+- **Libraries**: OpenZeppelin
 
-### 前端
-- **框架**: Next.js 15
-- **樣式**: Tailwind CSS
-- **狀態管理**: TanStack Query
-- **圖表**: Recharts
+### Frontend
+- **Framework**: Next.js 15
+- **Styling**: Tailwind CSS
+- **State Management**: TanStack Query
+- **Charts**: Recharts
 
-## 🔒 安全建議
+## 🔒 Security Recommendations
 
-⚠️ **測試網注意事項**：
-- 僅使用測試網私鑰
-- 不要在合約中存放真實資金
-- 定期檢查權限配置
+⚠️ **Testnet Considerations**:
+- Use testnet private keys only
+- Do not store real funds in contracts
+- Regularly review permission configurations
 
-🔐 **主網部署建議**：
-- 使用多簽錢包
-- 實施嚴格的審批流程
-- 考慮 MPC/HSM 管理私鑰
-- 進行完整的安全審計
+🔐 **Mainnet Deployment Recommendations**:
+- Use multi-signature wallets
+- Implement strict approval processes
+- Consider MPC/HSM for private key management
+- Conduct thorough security audits
 
-## 🤝 貢獻
+## 🤝 Contributing
 
-歡迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
-## 📄 授權
+## 📄 License
 
 MIT License
 
 ---
 
-**由 Arc Hackathon 團隊打造** ⚡
+**Built by Arc Hackathon Team** ⚡

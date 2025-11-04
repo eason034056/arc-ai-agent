@@ -1,75 +1,75 @@
 # Arc Payroll Frontend
 
-這是 Arc Payroll 系統的前端管理介面，使用 Next.js 15 建構。
+This is the frontend management interface for the Arc Payroll system, built with Next.js 15.
 
-## 功能特色
+## Features
 
-- 📊 **儀表板總覽**：顯示當月批次、金額、成功率、異常統計
-- 📋 **批次管理**：查看批次列表、詳情、交易狀態
-- 📈 **報表下載**：下載對賬報表（CSV）
-- ⚙️ **系統設定**：配置 RPC、限額等參數
-- 🎨 **現代 UI**：使用 Tailwind CSS，響應式設計
+- 📊 **Dashboard Overview**: Display current month batches, amounts, success rates, anomaly statistics
+- 📋 **Batch Management**: View batch list, details, transaction status
+- 📈 **Report Downloads**: Download reconciliation reports (CSV)
+- ⚙️ **System Settings**: Configure RPC, caps and other parameters
+- 🎨 **Modern UI**: Uses Tailwind CSS, responsive design
 
-## 技術棧
+## Tech Stack
 
-- **框架**：Next.js 15 (App Router)
-- **UI 樣式**：Tailwind CSS
-- **狀態管理**：React Query (TanStack Query)
-- **資料驗證**：Zod
-- **圖表**：Recharts
-- **HTTP 客戶端**：Axios
+- **Framework**: Next.js 15 (App Router)
+- **UI Styling**: Tailwind CSS
+- **State Management**: React Query (TanStack Query)
+- **Data Validation**: Zod
+- **Charts**: Recharts
+- **HTTP Client**: Axios
 
-## 環境設定
+## Environment Setup
 
-1. **複製環境變數範本**
+1. **Copy environment variable template**
    ```bash
    cp .env.example .env
    ```
 
-2. **編輯 .env 文件**
+2. **Edit .env file**
    ```bash
-   # 設定後端 API URL
+   # Set backend API URL
    NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8080
    ```
 
-3. **安裝依賴**
+3. **Install dependencies**
    ```bash
    npm install
    ```
 
-## 開發
+## Development
 
-### 啟動開發伺服器
+### Start Development Server
 ```bash
 npm run dev
 ```
 
-開啟瀏覽器訪問 [http://localhost:3000](http://localhost:3000)
+Open browser and visit [http://localhost:3000](http://localhost:3000)
 
-### 建置生產版本
+### Build Production Version
 ```bash
 npm run build
 npm start
 ```
 
-### 類型檢查
+### Type Check
 ```bash
 npm run type-check
 ```
 
-### Lint 檢查
+### Lint Check
 ```bash
 npm run lint
 ```
 
-## Docker 部署
+## Docker Deployment
 
-### 建置映像
+### Build Image
 ```bash
 docker build -t arc-payroll-frontend .
 ```
 
-### 執行容器
+### Run Container
 ```bash
 docker run -d \
   -p 3000:3000 \
@@ -78,91 +78,90 @@ docker run -d \
   arc-payroll-frontend
 ```
 
-## 頁面結構
+## Page Structure
 
 ```
 src/app/
-├── layout.tsx           # 根布局（導航欄）
-├── page.tsx             # 首頁 - 儀表板
-├── globals.css          # 全域樣式
+├── layout.tsx           # Root layout (navigation bar)
+├── page.tsx             # Home page - Dashboard
+├── globals.css          # Global styles
 ├── batches/
-│   ├── page.tsx         # 批次列表頁
+│   ├── page.tsx         # Batch list page
 │   └── [batchId]/
-│       └── page.tsx     # 批次詳情頁
+│       └── page.tsx     # Batch detail page
 └── settings/
-    └── page.tsx         # 設定頁
+    └── page.tsx         # Settings page
 ```
 
-## API 整合
+## API Integration
 
-前端透過 Axios 與後端 API 通訊：
+Frontend communicates with backend API via Axios:
 
 ```typescript
-// 範例：獲取批次列表
+// Example: Get batch list
 const response = await axios.get(
   `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/batches`
 )
 ```
 
-### 主要 API 端點
+### Main API Endpoints
 
-- `GET /healthz` - 健康檢查
-- `GET /batches` - 獲取批次列表
-- `GET /batches/:batchId` - 獲取批次詳情
-- `POST /admin/trigger` - 手動觸發批次
-- `GET /reports/:month/reconcile` - 下載對賬報表
+- `GET /healthz` - Health check
+- `GET /batches` - Get batch list
+- `GET /batches/:batchId` - Get batch details
+- `POST /admin/trigger` - Manually trigger batch
+- `GET /reports/:month/reconcile` - Download reconciliation report
 
-## 開發指南
+## Development Guidelines
 
-### 組件命名規則
+### Component Naming Convention
 
-- **頁面組件**：使用 PascalCase（例如 `BatchListPage`）
-- **UI 組件**：使用 PascalCase（例如 `StatCard`）
-- **檔案名稱**：使用 kebab-case（例如 `stat-card.tsx`）
+- **Page Components**: Use PascalCase (e.g. `BatchListPage`)
+- **UI Components**: Use PascalCase (e.g. `StatCard`)
+- **File Names**: Use kebab-case (e.g. `stat-card.tsx`)
 
-### 樣式規範
+### Styling Guidelines
 
-- 優先使用 Tailwind CSS utility classes
-- 避免自定義 CSS（除非必要）
-- 使用預設的 Design Token（定義在 `tailwind.config.ts`）
+- Prefer Tailwind CSS utility classes
+- Avoid custom CSS (unless necessary)
+- Use predefined Design Tokens (defined in `tailwind.config.ts`)
 
-### 程式碼風格
+### Code Style
 
-- 使用 TypeScript strict 模式
-- 遵循 ESLint 規則
-- 每個函式都應有 JSDoc 註解（中文）
+- Use TypeScript strict mode
+- Follow ESLint rules
+- Every function should have JSDoc comments (in English)
 
-## 目錄結構
+## Directory Structure
 
 ```
 frontend/
 ├── src/
-│   ├── app/              # Next.js App Router 頁面
-│   ├── components/       # 共用組件（待建立）
-│   ├── lib/              # 工具函式（待建立）
-│   └── types/            # TypeScript 型別定義（待建立）
-├── public/               # 靜態資源
-├── .env.example          # 環境變數範本
-├── Dockerfile            # Docker 建置文件
-├── next.config.js        # Next.js 配置
-├── tailwind.config.ts    # Tailwind CSS 配置
-├── tsconfig.json         # TypeScript 配置
-├── package.json          # 依賴管理
-└── README.md             # 本文件
+│   ├── app/              # Next.js App Router pages
+│   ├── components/       # Shared components (to be created)
+│   ├── lib/              # Utility functions (to be created)
+│   └── types/            # TypeScript type definitions (to be created)
+├── public/               # Static assets
+├── .env.example          # Environment variable template
+├── Dockerfile            # Docker build file
+├── next.config.js        # Next.js configuration
+├── tailwind.config.ts    # Tailwind CSS configuration
+├── tsconfig.json         # TypeScript configuration
+├── package.json          # Dependency management
+└── README.md             # This file
 ```
 
-## 待實作功能
+## TODOs
 
-- [ ] 完整的批次列表頁
-- [ ] 批次詳情頁（含交易紀錄）
-- [ ] 報表下載功能
-- [ ] 設定頁面
-- [ ] 身份驗證（NextAuth）
-- [ ] 錯誤處理與 Toast 通知
-- [ ] Loading 狀態
-- [ ] 深色模式
+- [ ] Complete batch list page
+- [ ] Batch detail page (with transaction records)
+- [ ] Report download functionality
+- [ ] Settings page
+- [ ] Authentication (NextAuth)
+- [ ] Error handling & Toast notifications
+- [ ] Loading states
+- [ ] Dark mode
 
 ## License
 
 MIT
-

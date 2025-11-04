@@ -1,21 +1,21 @@
 /**
- * Hardhat 配置文件
+ * Hardhat Configuration File
  * 
- * 設定說明：
- * - solidity: 使用 0.8.24 版本（與 PayrollVault.sol 一致）
- * - networks: 配置 Arc Testnet 網路
- * - etherscan: 配置區塊鏈瀏覽器驗證（如需要）
+ * Configuration:
+ * - solidity: Using version 0.8.24 (consistent with PayrollVault.sol)
+ * - networks: Configure Arc Testnet network
+ * - etherscan: Configure blockchain explorer verification (if needed)
  */
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
 
-// 載入環境變數
+// Load environment variables
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  // Solidity 編譯器版本
+  // Solidity compiler version
   solidity: {
     version: "0.8.24",
     settings: {
@@ -26,9 +26,9 @@ const config: HardhatUserConfig = {
     },
   },
 
-  // 網路配置
+  // Network configuration
   networks: {
-    // Arc Testnet 配置
+    // Arc Testnet configuration
     arcTestnet: {
       url: process.env.ARC_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -36,18 +36,18 @@ const config: HardhatUserConfig = {
       gasPrice: "auto",
     },
 
-    // Hardhat 本地網路（用於測試）
+    // Hardhat local network (for testing)
     hardhat: {
       chainId: 31337,
     },
 
-    // 可選：添加其他網路
+    // Optional: Add other networks
     // localhost: {
     //   url: "http://127.0.0.1:8545",
     // },
   },
 
-  // 區塊鏈瀏覽器驗證配置（如果 Arc Testnet 支援）
+  // Blockchain explorer verification configuration (if Arc Testnet supports it)
   etherscan: {
     apiKey: {
       arcTestnet: process.env.ETHERSCAN_API_KEY || "",
@@ -64,7 +64,7 @@ const config: HardhatUserConfig = {
     ],
   },
 
-  // 路徑配置
+  // Path configuration
   paths: {
     sources: "./contracts",
     tests: "./test",
@@ -74,4 +74,3 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
-

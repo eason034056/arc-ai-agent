@@ -1,11 +1,11 @@
 """
 Demo data seeding script
-為測試環境填充範例資料
+Fill demo data for testing environment
 """
 import sys
 from pathlib import Path
 
-# 添加 app 到路徑
+# Add app to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from decimal import Decimal
@@ -19,15 +19,15 @@ logger = logging.getLogger(__name__)
 
 def seed_demo_data():
     """
-    創建示範資料
-    包含一個測試批次和幾筆薪資紀錄
+    Create demo data
+    Includes a test batch and several payroll records
     """
     logger.info("Starting demo data seeding...")
     
     session = next(get_session())
     
     try:
-        # 創建示範批次
+        # Create demo batch
         batch = Batch(
             batch_id="demo-2025-11",
             month="2025-11",
@@ -38,7 +38,7 @@ def seed_demo_data():
         session.add(batch)
         session.flush()
         
-        # 創建示範薪資紀錄
+        # Create demo payroll records
         lines = [
             PayrollLine(
                 batch_id="demo-2025-11",
@@ -81,4 +81,3 @@ def seed_demo_data():
 
 if __name__ == "__main__":
     seed_demo_data()
-

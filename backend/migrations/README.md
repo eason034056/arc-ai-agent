@@ -1,28 +1,27 @@
 # Database Migrations
 
-此目錄包含 Alembic 資料庫遷移腳本。
+This directory contains Alembic database migration scripts.
 
-## 初始化 Alembic
+## Initialize Alembic
 
 ```bash
 alembic init migrations
 ```
 
-## 創建新遷移
+## Create New Migration
 
 ```bash
 alembic revision --autogenerate -m "description"
 ```
 
-## 執行遷移
+## Run Migrations
 
 ```bash
 alembic upgrade head
 ```
 
-## 回滾遷移
+## Rollback Migration
 
 ```bash
 alembic downgrade -1
 ```
-

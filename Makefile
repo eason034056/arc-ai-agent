@@ -1,6 +1,6 @@
 # ============================================
 # Arc Payroll System - Makefile
-# 提供一鍵指令來管理整個系統
+# Provides one-click commands to manage the entire system
 # ============================================
 
 .PHONY: help backend-up backend-down backend-migrate backend-seed \
@@ -8,236 +8,235 @@
         contracts-install contracts-compile contracts-deploy \
         up-all down-all logs clean
 
-# 預設目標：顯示幫助訊息
+# Default target: Display help message
 help:
 	@echo "=========================================="
-	@echo "Arc Payroll System - 可用指令"
+	@echo "Arc Payroll System - Available Commands"
 	@echo "=========================================="
 	@echo ""
-	@echo "後端指令:"
-	@echo "  make backend-up        - 啟動後端服務 (Docker Compose)"
-	@echo "  make backend-down      - 停止後端服務"
-	@echo "  make backend-migrate   - 執行資料庫遷移"
-	@echo "  make backend-seed      - 填充測試資料"
-	@echo "  make backend-logs      - 查看後端日誌"
+	@echo "Backend Commands:"
+	@echo "  make backend-up        - Start backend services (Docker Compose)"
+	@echo "  make backend-down      - Stop backend services"
+	@echo "  make backend-migrate   - Run database migrations"
+	@echo "  make backend-seed      - Seed test data"
+	@echo "  make backend-logs      - View backend logs"
 	@echo ""
-	@echo "前端指令:"
-	@echo "  make frontend-dev      - 啟動前端開發伺服器"
-	@echo "  make frontend-up       - 建置並啟動前端 (Docker)"
-	@echo "  make frontend-down     - 停止前端容器"
+	@echo "Frontend Commands:"
+	@echo "  make frontend-dev      - Start frontend dev server"
+	@echo "  make frontend-up       - Build and start frontend (Docker)"
+	@echo "  make frontend-down     - Stop frontend container"
 	@echo ""
-	@echo "合約指令:"
-	@echo "  make contracts-install - 安裝合約依賴"
-	@echo "  make contracts-compile - 編譯智慧合約"
-	@echo "  make contracts-deploy  - 部署合約到 Arc Testnet"
+	@echo "Contract Commands:"
+	@echo "  make contracts-install - Install contract dependencies"
+	@echo "  make contracts-compile - Compile smart contracts"
+	@echo "  make contracts-deploy  - Deploy contracts to Arc Testnet"
 	@echo ""
-	@echo "整合指令:"
-	@echo "  make up-all            - 啟動後端和前端"
-	@echo "  make down-all          - 停止所有服務"
-	@echo "  make logs              - 查看所有日誌"
-	@echo "  make clean             - 清理所有容器和資料"
+	@echo "Integration Commands:"
+	@echo "  make up-all            - Start backend and frontend"
+	@echo "  make down-all          - Stop all services"
+	@echo "  make logs              - View all logs"
+	@echo "  make clean             - Clean all containers and data"
 	@echo "=========================================="
 
 # ============================================
-# 後端指令
+# Backend Commands
 # ============================================
 
-# 啟動後端服務（Postgres, Redis, App, Prometheus, Grafana）
+# Start backend services (Postgres, Redis, App, Prometheus, Grafana)
 backend-up:
-	@echo "🚀 啟動後端服務..."
+	@echo "🚀 Starting backend services..."
 	cd backend && docker compose up -d --build
-	@echo "✅ 後端服務已啟動"
+	@echo "✅ Backend services started"
 	@echo "   - API: http://localhost:8080"
 	@echo "   - Prometheus: http://localhost:9090"
 	@echo "   - Grafana: http://localhost:3000"
 
-# 停止後端服務
+# Stop backend services
 backend-down:
-	@echo "🛑 停止後端服務..."
+	@echo "🛑 Stopping backend services..."
 	cd backend && docker compose down
-	@echo "✅ 後端服務已停止"
+	@echo "✅ Backend services stopped"
 
-# 執行資料庫遷移
+# Run database migrations
 backend-migrate:
-	@echo "📦 執行資料庫遷移..."
+	@echo "📦 Running database migrations..."
 	cd backend && docker compose exec app alembic upgrade head
-	@echo "✅ 遷移完成"
+	@echo "✅ Migrations complete"
 
-# 填充測試資料
+# Seed test data
 backend-seed:
-	@echo "🌱 填充測試資料..."
+	@echo "🌱 Seeding test data..."
 	cd backend && docker compose exec app python scripts/seed_demo.py
-	@echo "✅ 測試資料已填充"
+	@echo "✅ Test data seeded"
 
-# 查看後端日誌
+# View backend logs
 backend-logs:
 	cd backend && docker compose logs -f app
 
 # ============================================
-# 前端指令
+# Frontend Commands
 # ============================================
 
-# 啟動前端開發伺服器（本地）
+# Start frontend development server (local)
 frontend-dev:
-	@echo "🎨 啟動前端開發伺服器..."
+	@echo "🎨 Starting frontend dev server..."
 	cd frontend && npm install && npm run dev
 
-# 建置並啟動前端（Docker）
+# Build and start frontend (Docker)
 frontend-up:
-	@echo "🚀 建置並啟動前端..."
+	@echo "🚀 Building and starting frontend..."
 	cd frontend && docker build -t arc-payroll-frontend .
 	docker run -d -p 3000:3000 \
 		--env-file frontend/.env \
 		--name arc-payroll-frontend \
 		--network arc-ai-agent_default \
 		arc-payroll-frontend
-	@echo "✅ 前端已啟動: http://localhost:3000"
+	@echo "✅ Frontend started: http://localhost:3000"
 
-# 停止前端容器
+# Stop frontend container
 frontend-down:
-	@echo "🛑 停止前端容器..."
+	@echo "🛑 Stopping frontend container..."
 	docker stop arc-payroll-frontend || true
 	docker rm arc-payroll-frontend || true
-	@echo "✅ 前端已停止"
+	@echo "✅ Frontend stopped"
 
 # ============================================
-# 合約指令
+# Contract Commands
 # ============================================
 
-# 安裝合約依賴
+# Install contract dependencies
 contracts-install:
-	@echo "📦 安裝合約依賴..."
+	@echo "📦 Installing contract dependencies..."
 	cd contracts && npm install
-	@echo "✅ 依賴安裝完成"
+	@echo "✅ Dependencies installed"
 
-# 編譯智慧合約
+# Compile smart contracts
 contracts-compile:
-	@echo "🔨 編譯智慧合約..."
+	@echo "🔨 Compiling smart contracts..."
 	cd contracts && npx hardhat compile
-	@echo "✅ 合約編譯完成"
+	@echo "✅ Contracts compiled"
 
-# 部署合約到 Arc Testnet
+# Deploy contracts to Arc Testnet
 contracts-deploy:
-	@echo "🚀 部署合約到 Arc Testnet..."
+	@echo "🚀 Deploying contracts to Arc Testnet..."
 	cd contracts && npx hardhat run scripts/deploy.ts --network arcTestnet
-	@echo "✅ 合約部署完成"
-	@echo "⚠️  請更新 backend/.env 中的 PAYROLL_CONTRACT_ADDRESS"
+	@echo "✅ Contracts deployed"
+	@echo "⚠️  Please update PAYROLL_CONTRACT_ADDRESS in backend/.env"
 
 # ============================================
-# 整合指令
+# Integration Commands
 # ============================================
 
-# 啟動所有服務（後端 + 前端）
+# Start all services (backend + frontend)
 up-all: backend-up frontend-up
 	@echo ""
 	@echo "=========================================="
-	@echo "🎉 所有服務已啟動！"
+	@echo "🎉 All services started!"
 	@echo "=========================================="
-	@echo "後端 API: http://localhost:8080"
-	@echo "前端 UI:  http://localhost:3000"
+	@echo "Backend API: http://localhost:8080"
+	@echo "Frontend UI:  http://localhost:3000"
 	@echo "Prometheus: http://localhost:9090"
 	@echo "Grafana:    http://localhost:3000 (Grafana port conflicts with frontend)"
 	@echo "=========================================="
 
-# 停止所有服務
+# Stop all services
 down-all: backend-down frontend-down
-	@echo "✅ 所有服務已停止"
+	@echo "✅ All services stopped"
 
-# 查看所有日誌
+# View all logs
 logs:
 	cd backend && docker compose logs -f
 
-# 清理所有容器、映像和資料
+# Clean all containers, images and data
 clean:
-	@echo "🧹 清理所有容器和資料..."
-	@read -p "⚠️  這將刪除所有容器、映像和 volume。確定嗎？ [y/N] " confirm; \
+	@echo "🧹 Cleaning all containers and data..."
+	@read -p "⚠️  This will delete all containers, images and volumes. Are you sure? [y/N] " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		cd backend && docker compose down -v --rmi all || true; \
 		docker stop arc-payroll-frontend || true; \
 		docker rm arc-payroll-frontend || true; \
 		docker rmi arc-payroll-frontend || true; \
-		echo "✅ 清理完成"; \
+		echo "✅ Cleanup complete"; \
 	else \
-		echo "❌ 取消清理"; \
+		echo "❌ Cleanup cancelled"; \
 	fi
 
 # ============================================
-# 開發輔助指令
+# Development Helper Commands
 # ============================================
 
-# 進入後端容器的 shell
+# Enter backend container shell
 backend-shell:
 	cd backend && docker compose exec app /bin/bash
 
-# 執行後端測試
+# Run backend tests
 backend-test:
 	cd backend && docker compose exec app pytest
 
-# 執行前端類型檢查
+# Run frontend type check
 frontend-type-check:
 	cd frontend && npm run type-check
 
-# 執行前端 lint
+# Run frontend lint
 frontend-lint:
 	cd frontend && npm run lint
 
 # ============================================
-# 快速開始（適合首次使用）
+# Quick Start (for first-time users)
 # ============================================
 
-# 首次設定
+# Initial setup
 setup:
-	@echo "🎯 首次設定..."
+	@echo "🎯 Initial setup..."
 	@echo ""
-	@echo "1️⃣ 設定後端環境變數"
+	@echo "1️⃣ Setup backend environment variables"
 	@if [ ! -f backend/.env ]; then \
 		cp backend/.env.example backend/.env; \
-		echo "   ✅ 已創建 backend/.env，請編輯並填入正確的值"; \
+		echo "   ✅ Created backend/.env, please edit and fill in correct values"; \
 	else \
-		echo "   ⚠️  backend/.env 已存在"; \
+		echo "   ⚠️  backend/.env already exists"; \
 	fi
 	@echo ""
-	@echo "2️⃣ 設定前端環境變數"
+	@echo "2️⃣ Setup frontend environment variables"
 	@if [ ! -f frontend/.env ]; then \
 		cp frontend/.env.example frontend/.env; \
-		echo "   ✅ 已創建 frontend/.env"; \
+		echo "   ✅ Created frontend/.env"; \
 	else \
-		echo "   ⚠️  frontend/.env 已存在"; \
+		echo "   ⚠️  frontend/.env already exists"; \
 	fi
 	@echo ""
-	@echo "3️⃣ 設定合約環境變數"
+	@echo "3️⃣ Setup contract environment variables"
 	@if [ ! -f contracts/.env ]; then \
 		cp contracts/.env.example contracts/.env; \
-		echo "   ✅ 已創建 contracts/.env，請編輯並填入正確的值"; \
+		echo "   ✅ Created contracts/.env, please edit and fill in correct values"; \
 	else \
-		echo "   ⚠️  contracts/.env 已存在"; \
+		echo "   ⚠️  contracts/.env already exists"; \
 	fi
 	@echo ""
-	@echo "4️⃣ 安裝依賴"
+	@echo "4️⃣ Install dependencies"
 	@$(MAKE) contracts-install
 	@echo ""
 	@echo "=========================================="
-	@echo "✅ 設定完成！"
+	@echo "✅ Setup complete!"
 	@echo "=========================================="
-	@echo "下一步："
-	@echo "  1. 編輯 backend/.env 和 contracts/.env"
-	@echo "  2. 執行 'make contracts-compile' 編譯合約"
-	@echo "  3. 執行 'make contracts-deploy' 部署合約"
-	@echo "  4. 執行 'make up-all' 啟動所有服務"
+	@echo "Next steps:"
+	@echo "  1. Edit backend/.env and contracts/.env"
+	@echo "  2. Run 'make contracts-compile' to compile contracts"
+	@echo "  3. Run 'make contracts-deploy' to deploy contracts"
+	@echo "  4. Run 'make up-all' to start all services"
 	@echo "=========================================="
 
-# 快速重啟（開發時使用）
+# Quick restart (for development)
 restart: down-all up-all
 
-# 查看系統狀態
+# View system status
 status:
 	@echo "=========================================="
-	@echo "系統狀態"
+	@echo "System Status"
 	@echo "=========================================="
-	@echo "後端容器："
-	@cd backend && docker compose ps || echo "  未啟動"
+	@echo "Backend containers:"
+	@cd backend && docker compose ps || echo "  Not started"
 	@echo ""
-	@echo "前端容器："
-	@docker ps | grep arc-payroll-frontend || echo "  未啟動"
+	@echo "Frontend container:"
+	@docker ps | grep arc-payroll-frontend || echo "  Not started"
 	@echo "=========================================="
-
