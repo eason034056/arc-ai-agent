@@ -1,0 +1,129 @@
+# ========================================
+# CORE WEB FRAMEWORK
+# ========================================
+# FastAPI: Modern, fast web framework for building APIs
+# - Used for all HTTP endpoints (admin, Slack webhooks, expense callbacks)
+fastapi==0.115.*
+
+# Uvicorn: ASGI server to run FastAPI
+# - [standard] includes websockets, performance improvements
+uvicorn[standard]==0.30.*
+
+# ========================================
+# DATABASE & ORM
+# ========================================
+# SQLAlchemy: SQL toolkit and ORM
+# - Used to define models and query the database
+sqlalchemy==2.0.*
+
+# Alembic: Database migration tool
+# - Manages schema changes over time
+alembic==1.13.*
+
+# Psycopg2: PostgreSQL adapter for Python
+# - Binary version (no compilation needed)
+psycopg2-binary==2.9.*
+
+# ========================================
+# CACHING & QUEUE
+# ========================================
+# Redis: In-memory data store
+# - Used for caching and job queues
+redis==5.0.*
+
+# ========================================
+# DATA VALIDATION & PROCESSING
+# ========================================
+# Pydantic: Data validation using Python type hints
+# - Used for API request/response models and agent state
+pydantic==2.9.*
+
+# Pandas: Data manipulation and analysis
+# - Used for payroll data processing and CSV operations
+pandas==2.2.*
+
+# NumPy: Numerical computing
+# - Required by pandas and scikit-learn
+numpy==2.0.*
+
+# PyYAML: YAML parser
+# - Used for configuration files
+pyyaml==6.0.*
+
+# ========================================
+# BLOCKCHAIN / WEB3
+# ========================================
+# Web3.py: Ethereum/EVM blockchain interaction
+# - Used to call PayrollVault contract and send transactions
+web3==6.20.*
+
+# ========================================
+# SLACK INTEGRATION
+# ========================================
+# Slack Bolt: Framework for Slack apps
+# - Handles Slack events, commands, and interactive components
+slack-bolt==1.20.*
+
+# ========================================
+# MONITORING & METRICS
+# ========================================
+# Prometheus Client: Metrics collection
+# - Exposes metrics for Prometheus scraping
+prometheus-client==0.20.*
+
+# ========================================
+# RELIABILITY & RETRY
+# ========================================
+# Tenacity: Retry library
+# - Used for retrying failed blockchain transactions and API calls
+tenacity==8.5.*
+
+# ========================================
+# AI / LANGGRAPH
+# ========================================
+# LangGraph: Framework for building stateful AI agents
+# - Core orchestration engine for the payroll workflow
+langgraph==0.2.*
+
+# OpenAI: OpenAI API client
+# - Used for anomaly detection and summarization (optional)
+openai==1.47.*
+
+# Scikit-learn: Machine learning library
+# - Used for anomaly detection algorithms
+scikit-learn==1.5.*
+
+# ========================================
+# UTILITIES
+# ========================================
+# Python-dotenv: Load environment variables from .env file
+python-dotenv==1.0.*
+
+# ========================================
+# DEVELOPMENT TOOLS
+# ========================================
+# Ruff: Fast Python linter
+# - Checks code style and potential errors
+ruff==0.6.*
+
+# Black: Code formatter
+# - Ensures consistent code style
+black==24.*
+
+# MyPy: Static type checker
+# - Catches type errors before runtime
+mypy==1.11.*
+
+# ========================================
+# TESTING
+# ========================================
+# Pytest: Testing framework
+# - Used for unit and integration tests
+pytest==8.3.*
+
+# Pytest-asyncio: Async support for pytest
+pytest-asyncio==0.23.*
+
+# Httpx: HTTP client (for testing FastAPI)
+httpx==0.27.*
+

@@ -1,0 +1,182 @@
+# ========================================
+# DOCKER COMPOSE CONFIGURATION
+# ========================================
+# This file orchestrates all services needed for the payroll AI agent.
+# Services: FastAPI app, PostgreSQL database, Redis cache, Prometheus, Grafana
+
+version: "3.9"
+
+services:
+  # ========================================
+  # MAIN APPLICATION (Python + FastAPI)
+  # ========================================
+  app:
+    # Build the Docker image from the current directory
+    build: .
+    
+    # Container name for easy reference
+    container_name: arc-payroll-app
+    
+    # Load environment variables from .env file
+    # Variables in .env override those defined in environment: section
+    env_file: .env
+    
+    # Port mapping: host:container
+    # Access the API at http://localhost:8080
+    ports:
+      - "8080:8080"
+    
+    # Service dependencies
+    # Docker will start postgres and redis before starting app
+    # Note: This only waits for containers to start, not for services to be ready
+    depends_on:
+      - postgres
+      - redis
+    
+    # Volume mapping for development
+    # Maps local directory to /app in container
+    # Changes to local files are immediately reflected in the container
+    volumes:
+      - ./:/app
+    
+    # Restart policy
+    # unless-stopped: Always restart unless explicitly stopped by user
+    restart: unless-stopped
+    
+    # Health check to verify the app is running
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # DATABASE (PostgreSQL)
+  # ========================================
+  postgres:
+    # Use official PostgreSQL 16 image
+    image: postgres:16
+    
+    container_name: arc-payroll-postgres
+    
+    # Database configuration
+    environment:
+      # Database superuser username
+      POSTGRES_USER: user
+      
+      # Database superuser password
+      # IMPORTANT: Change this in production!
+      POSTGRES_PASSWORD: pass
+      
+      # Default database name to create
+      POSTGRES_DB: arc_payroll
+    
+    # Port mapping
+    # Access PostgreSQL at localhost:5432
+    ports:
+      - "5432:5432"
+    
+    # Persistent volume for database data
+    # Data survives container restarts and recreations
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    
+    restart: unless-stopped
+    
+    # Health check for PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d arc_payroll"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # CACHE (Redis)
+  # ========================================
+  redis:
+    # Use official Redis 7 image
+    image: redis:7
+    
+    container_name: arc-payroll-redis
+    
+    # Port mapping
+    # Access Redis at localhost:6379
+    ports:
+      - "6379:6379"
+    
+    restart: unless-stopped
+    
+    # Health check for Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # METRICS (Prometheus)
+  # ========================================
+  prometheus:
+    # Prometheus collects and stores metrics
+    image: prom/prometheus:latest
+    
+    container_name: arc-payroll-prometheus
+    
+    # Mount Prometheus configuration
+    volumes:
+      - ../ops/prometheus.yml:/etc/prometheus/prometheus.yml
+    
+    # Port mapping
+    # Access Prometheus UI at http://localhost:9090
+    ports:
+      - "9090:9090"
+    
+    # Command to specify config file location
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    
+    restart: unless-stopped
+
+  # ========================================
+  # VISUALIZATION (Grafana)
+  # ========================================
+  grafana:
+    # Grafana visualizes metrics from Prometheus
+    image: grafana/grafana:latest
+    
+    container_name: arc-payroll-grafana
+    
+    # Port mapping
+    # Access Grafana UI at http://localhost:3000
+    # Default login: admin/admin
+    ports:
+      - "3000:3000"
+    
+    # Wait for Prometheus to be available
+    depends_on:
+      - prometheus
+    
+    # Environment variables for Grafana
+    environment:
+      # Allow anonymous access (dev only!)
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      
+      # Disable user signup
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    
+    restart: unless-stopped
+
+# ========================================
+# VOLUMES
+# ========================================
+# Named volumes for persistent data
+volumes:
+  # PostgreSQL data volume
+  # Stores all database data persistently
+  pgdata:
+    driver: local
+
