@@ -1,4 +1,6 @@
+# ============================================
 # Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,87 +18,98 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
-
-# Virtual Environment
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
-.venv/
+.venv
 
-# PyCharm
-.idea/
+# ============================================
+# Node.js
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+.turbo/
+out/
+dist/
 
-# VS Code
-.vscode/
-
-# Environment variables
+# ============================================
+# Environment Variables
+# ============================================
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
+# ============================================
+# IDE / Editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# Docker
+# ============================================
+docker-compose.override.yml
+
+# ============================================
 # Database
+# ============================================
 *.db
 *.sqlite
 *.sqlite3
 
+# ============================================
 # Logs
+# ============================================
 *.log
 logs/
 
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Docker
-.docker/
-docker-compose.override.yml
-
-# Test coverage
+# ============================================
+# Testing
+# ============================================
+.pytest_cache/
+.coverage
 htmlcov/
 .tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
 coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# ============================================
+# Hardhat / Solidity
+# ============================================
+cache/
+artifacts/
+typechain/
+typechain-types/
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# ============================================
+# Compiled Contracts
+# ============================================
+backend/abi/*.json
+backend/abi/*.address
 
-# Temporary files
+# ============================================
+# Temporary Files
+# ============================================
 *.tmp
 *.bak
-*.swp
-*~
+*.backup
+.cache/
 
-# Node modules (if any frontend tools are used)
-node_modules/
-
-# Distribution / packaging
-.Python
-*.manifest
-*.spec
-
+# ============================================
+# OS
+# ============================================
+Thumbs.db
+Desktop.ini

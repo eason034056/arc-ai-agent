@@ -1,0 +1,108 @@
+# Prometheus 配置文件
+# 用於監控 Arc Payroll 系統的指標
+
+# 全域配置
+global:
+  # 預設抓取間隔
+  scrape_interval: 15s
+  
+  # 評估規則的間隔
+  evaluation_interval: 15s
+  
+  # 外部標籤（可選）
+  external_labels:
+    cluster: 'arc-payroll'
+    environment: 'dev'
+
+# Alertmanager 配置（可選）
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# 規則文件（可選）
+# rule_files:
+#   - "alerts/*.yml"
+
+# 抓取配置
+scrape_configs:
+  # ============================================
+  # Prometheus 自身監控
+  # ============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # ============================================
+  # Backend API 監控
+  # ============================================
+  - job_name: 'arc-payroll-backend'
+    # 抓取間隔（覆蓋全域設定）
+    scrape_interval: 10s
+    
+    # 抓取超時
+    scrape_timeout: 5s
+    
+    # 指標路徑
+    metrics_path: '/metrics'
+    
+    # 目標配置
+    static_configs:
+      - targets: ['app:8080']  # Docker 內部使用 service name
+        labels:
+          service: 'backend'
+          component: 'api'
+    
+    # 自訂標籤
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'arc-payroll-backend'
+
+  # ============================================
+  # PostgreSQL 監控（如果使用 postgres_exporter）
+  # ============================================
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'
+
+  # ============================================
+  # Redis 監控（如果使用 redis_exporter）
+  # ============================================
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis'
+
+  # ============================================
+  # Node Exporter（系統指標，可選）
+  # ============================================
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #       labels:
+  #         service: 'node'
+
+# ============================================
+# 常見指標說明
+# ============================================
+#
+# Backend API 指標（由 prometheus_client 提供）：
+# - http_requests_total: HTTP 請求總數
+# - http_request_duration_seconds: 請求處理時間
+# - agent_execution_total: Agent 執行次數
+# - agent_execution_duration_seconds: Agent 執行時間
+# - batch_processed_total: 批次處理總數
+# - payroll_amount_usdc: 發放金額
+# - transaction_success_total: 成功交易數
+# - transaction_failure_total: 失敗交易數
+# - anomaly_detected_total: 偵測到的異常數
+#
+# ============================================
+
