@@ -12,9 +12,9 @@ It defines all HTTP endpoints and integrates:
 API Documentation available at: http://localhost:8080/docs
 """
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -179,7 +179,14 @@ async def trigger_payroll_batch(
         policy = PayrollPolicy()
         onchain_service = OnchainService()
         
-        # TODO: Initialize other services (Slack, database repo, etc.)
+        # Initialize Slack client (if configured)
+        slack_client = None
+        try:
+            from app.slack.app import slack_app
+            slack_client = slack_app.client
+            logger.info("Slack client initialized for workflow")
+        except Exception as e:
+            logger.warning(f"Slack not configured, continuing without: {e}")
         
         # Run workflow
         # Note: This runs synchronously and blocks the request
@@ -188,7 +195,8 @@ async def trigger_payroll_batch(
             batch_id=batch_id,
             month=month,
             policy=policy,
-            onchain_service=onchain_service
+            onchain_service=onchain_service,
+            slack_client=slack_client
         )
         
         # Return response
@@ -306,7 +314,7 @@ async def list_batches(
 # ========================================
 
 @app.post("/slack/events")
-async def slack_events(request):
+async def slack_events(request: Request):
     """
     Slack events endpoint
     
@@ -316,23 +324,40 @@ async def slack_events(request):
     - Events (messages, etc.)
     
     This endpoint is configured in your Slack app settings.
+    
+    Args:
+        request: FastAPI Request object containing Slack event data
+        
+    Returns:
+        Response from Slack Bolt handler
     """
     from app.slack.app import slack_handler
+    
+    logger.debug("Received Slack event")
     
     # Use Slack Bolt's FastAPI adapter to handle the request
     return await slack_handler.handle(request)
 
 
 @app.post("/slack/commands")
-async def slack_commands(request):
+async def slack_commands(request: Request):
     """
     Slack slash commands endpoint
     
     Handles commands like:
     - /payroll status <batch_id>
     - /payroll trigger <month>
+    
+    Args:
+        request: FastAPI Request object containing Slack command data
+        
+    Returns:
+        Response from Slack Bolt handler
     """
     from app.slack.app import slack_handler
+    
+    logger.debug("Received Slack command")
+    
     return await slack_handler.handle(request)
 
 

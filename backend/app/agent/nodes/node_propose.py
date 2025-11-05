@@ -110,8 +110,20 @@ def run(state: AgentState, slack_client=None) -> AgentState:
             return new_state
     else:
         logger.warning(
-            "No Slack client provided, skipping message send",
+            "No Slack client provided, skipping Slack message",
             extra={"batch_id": state.batch_id}
+        )
+        
+        # Log approval request details for debugging
+        logger.info(
+            "Approval request ready (Slack not configured)",
+            extra={
+                "batch_id": state.batch_id,
+                "month": state.month,
+                "total_amount": summary.get("total_amount", 0),
+                "recipient_count": summary.get("recipient_count", 0),
+                "anomaly_count": summary.get("anomaly_count", 0)
+            }
         )
     
     # ========================================

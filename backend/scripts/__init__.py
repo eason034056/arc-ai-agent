@@ -1,2 +1,1 @@
-"""Backend scripts"""
-
+# Scripts package

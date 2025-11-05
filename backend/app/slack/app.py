@@ -17,11 +17,15 @@ Setup Required:
 5. Copy Bot Token and Signing Secret to .env
 """
 
+import uuid
+from datetime import datetime
 from slack_bolt import App
 from slack_bolt.adapter.fastapi import SlackRequestHandler
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.db.connection import SessionLocal
+from app.db.models import Approval, ApprovalDecision, PayrollBatch
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -80,23 +84,48 @@ def handle_approve_all(ack, body, client):
     approver = body["user"]["id"]
     approver_name = body["user"].get("name", "Unknown")
     
-    # TODO: Update database with approval
-    # from app.db.repository import ApprovalRepository
-    # repo = ApprovalRepository()
-    # repo.save_approval(
-    #     batch_id=batch_id,
-    #     decision="APPROVE_ALL",
-    #     approver=approver
-    # )
-    
-    logger.info(
-        "Batch approved (all)",
-        extra={
-            "batch_id": batch_id,
-            "approver": approver,
-            "approver_name": approver_name
-        }
-    )
+    # Update database with approval
+    db = SessionLocal()
+    try:
+        # Save approval decision
+        approval = Approval(
+            id=str(uuid.uuid4()),
+            batch_id=batch_id,
+            decision=ApprovalDecision.APPROVE_ALL,
+            approver=approver,
+            slack_ts=body["message"]["ts"]
+        )
+        db.add(approval)
+        
+        # Update batch status
+        batch = db.query(PayrollBatch).filter_by(id=batch_id).first()
+        if batch:
+            batch.status = 'approved'
+            batch.approved_at = datetime.utcnow()
+            batch.approver_id = approver
+        
+        db.commit()
+        
+        logger.info(
+            "Batch approved (all)",
+            extra={
+                "batch_id": batch_id,
+                "approver": approver,
+                "approver_name": approver_name
+            }
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            "Failed to save approval",
+            extra={
+                "batch_id": batch_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
+    finally:
+        db.close()
     
     # Update the Slack message to show approval
     try:
@@ -187,15 +216,45 @@ def handle_reject(ack, body, client):
     batch_id = body["actions"][0]["value"]
     approver = body["user"]["id"]
     
-    # TODO: Update database with rejection
-    
-    logger.info(
-        "Batch rejected",
-        extra={
-            "batch_id": batch_id,
-            "approver": approver
-        }
-    )
+    # Update database with rejection
+    db = SessionLocal()
+    try:
+        # Save rejection decision
+        approval = Approval(
+            id=str(uuid.uuid4()),
+            batch_id=batch_id,
+            decision=ApprovalDecision.REJECT,
+            approver=approver,
+            slack_ts=body["message"]["ts"]
+        )
+        db.add(approval)
+        
+        # Update batch status
+        batch = db.query(PayrollBatch).filter_by(id=batch_id).first()
+        if batch:
+            batch.status = 'rejected'
+        
+        db.commit()
+        
+        logger.info(
+            "Batch rejected",
+            extra={
+                "batch_id": batch_id,
+                "approver": approver
+            }
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            "Failed to save rejection",
+            extra={
+                "batch_id": batch_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
+    finally:
+        db.close()
     
     # Update message
     try:

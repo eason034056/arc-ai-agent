@@ -106,7 +106,19 @@ class OnchainService:
         # ABI defines how to interact with the smart contract
         try:
             with open(settings.payroll_contract_abi_path, 'r') as f:
-                contract_abi = json.load(f)
+                artifact = json.load(f)
+            
+            # Extract ABI from Hardhat artifact
+            # Hardhat artifacts contain multiple fields (_format, contractName, abi, bytecode, etc.)
+            # We only need the 'abi' array for Web3.py
+            if isinstance(artifact, dict) and 'abi' in artifact:
+                # This is a Hardhat artifact, extract the ABI field
+                contract_abi = artifact['abi']
+            elif isinstance(artifact, list):
+                # This is already a pure ABI array
+                contract_abi = artifact
+            else:
+                raise ValueError("Invalid ABI format: expected Hardhat artifact or ABI array")
             
             logger.info(
                 "Contract ABI loaded",

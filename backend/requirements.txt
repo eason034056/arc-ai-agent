@@ -38,6 +38,10 @@ redis==5.0.*
 # - Used for API request/response models and agent state
 pydantic==2.9.*
 
+# Pydantic Settings: Settings management (separate package since Pydantic v2)
+# - Used for loading configuration from environment variables
+pydantic-settings==2.5.*
+
 # Pandas: Data manipulation and analysis
 # - Used for payroll data processing and CSV operations
 pandas==2.2.*

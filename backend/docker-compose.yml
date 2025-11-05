@@ -4,8 +4,6 @@
 # This file orchestrates all services needed for the payroll AI agent.
 # Services: FastAPI app, PostgreSQL database, Redis cache, Prometheus, Grafana
 
-version: "3.9"
-
 services:
   # ========================================
   # MAIN APPLICATION (Python + FastAPI)

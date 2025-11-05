@@ -17,12 +17,16 @@ External systems might include:
 """
 
 import json
+import uuid
 from datetime import datetime
 from typing import Dict, Any
+from decimal import Decimal
 
 from app.db.schema import AgentState
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.db.connection import SessionLocal
+from app.db.models import PayrollBatch, PayrollLine, Transaction, BatchStatus, TransactionStatus
 
 logger = get_logger(__name__)
 
@@ -132,7 +136,7 @@ def run(state: AgentState, webhook_client=None, db_repo=None) -> AgentState:
             )
             
             logger.info(
-                "Batch saved to database",
+                "Batch saved to database (via db_repo)",
                 extra={"batch_id": state.batch_id}
             )
         
@@ -142,6 +146,31 @@ def run(state: AgentState, webhook_client=None, db_repo=None) -> AgentState:
             
             logger.error(
                 "Database save error",
+                extra={
+                    "batch_id": state.batch_id,
+                    "error": str(e)
+                },
+                exc_info=True
+            )
+    else:
+        # Fallback: Direct database save if db_repo not provided
+        logger.info(
+            "db_repo not provided, using direct database save",
+            extra={"batch_id": state.batch_id}
+        )
+        
+        try:
+            save_batch_to_database(state)
+            logger.info(
+                "Batch saved to database (direct)",
+                extra={"batch_id": state.batch_id}
+            )
+        except Exception as e:
+            error_msg = f"Direct database save failed: {str(e)}"
+            errors.append(error_msg)
+            
+            logger.error(
+                "Direct database save error",
                 extra={
                     "batch_id": state.batch_id,
                     "error": str(e)
@@ -224,6 +253,119 @@ def prepare_webhook_payload(state: AgentState) -> Dict[str, Any]:
     }
     
     return payload
+
+
+def save_batch_to_database(state: AgentState) -> None:
+    """
+    Direct database save fallback
+    
+    Saves the payroll batch and transaction results directly to the database
+    when db_repo is not provided.
+    
+    Args:
+        state: Agent state with batch and transaction data
+        
+    Raises:
+        Exception: If database save fails
+    """
+    db = SessionLocal()
+    
+    try:
+        # Check if batch already exists
+        existing_batch = db.query(PayrollBatch).filter_by(id=state.batch_id).first()
+        
+        if existing_batch:
+            # Update existing batch
+            existing_batch.status = BatchStatus.COMPLETED if not state.errors else BatchStatus.FAILED
+            existing_batch.total_amount = sum(line.amount_usdc for line in state.lines)
+            existing_batch.line_count = len(state.lines)
+            existing_batch.anomaly_count = len([line for line in state.lines if line.flags])
+            existing_batch.summary = state.metadata.get("summary")
+            existing_batch.updated_at = datetime.utcnow()
+            
+            logger.info(
+                "Updated existing batch",
+                extra={"batch_id": state.batch_id}
+            )
+        else:
+            # Create new batch
+            batch = PayrollBatch(
+                id=state.batch_id,
+                month=state.month,
+                status=BatchStatus.COMPLETED if not state.errors else BatchStatus.FAILED,
+                total_amount=sum(line.amount_usdc for line in state.lines),
+                line_count=len(state.lines),
+                anomaly_count=len([line for line in state.lines if line.flags]),
+                summary=state.metadata.get("summary"),
+                approved_at=datetime.fromisoformat(state.approval["timestamp"]) if state.approval else None,
+                approver_id=state.approval.get("approver") if state.approval else None
+            )
+            db.add(batch)
+            
+            logger.info(
+                "Created new batch",
+                extra={"batch_id": state.batch_id}
+            )
+        
+        # Save payroll lines
+        for line in state.lines:
+            existing_line = db.query(PayrollLine).filter_by(
+                batch_id=state.batch_id,
+                employee_id=line.employee_id
+            ).first()
+            
+            if not existing_line:
+                payroll_line = PayrollLine(
+                    id=str(uuid.uuid4()),
+                    batch_id=state.batch_id,
+                    employee_id=line.employee_id,
+                    wallet=line.wallet,
+                    amount_usdc=line.amount_usdc,
+                    flags=line.flags or []
+                )
+                db.add(payroll_line)
+        
+        # Save transactions
+        for tx_hash in state.tx_hashes:
+            existing_tx = db.query(Transaction).filter_by(tx_hash=tx_hash).first()
+            
+            if not existing_tx:
+                transaction = Transaction(
+                    id=str(uuid.uuid4()),
+                    batch_id=state.batch_id,
+                    tx_hash=tx_hash,
+                    status=TransactionStatus.SUCCESS,
+                    amount=Decimal('0'),  # Would need to calculate from lines
+                    recipient_count=len(state.lines),
+                    gas_used=0,  # Would need from blockchain receipt
+                    confirmed_at=datetime.utcnow()
+                )
+                db.add(transaction)
+        
+        db.commit()
+        
+        logger.info(
+            "Batch data saved to database",
+            extra={
+                "batch_id": state.batch_id,
+                "lines": len(state.lines),
+                "transactions": len(state.tx_hashes)
+            }
+        )
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            "Failed to save batch to database",
+            extra={
+                "batch_id": state.batch_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
+        raise
+    finally:
+        db.close()
 
 
 def send_expense_webhook(

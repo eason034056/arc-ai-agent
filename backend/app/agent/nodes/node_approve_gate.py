@@ -21,6 +21,8 @@ from typing import Optional, Dict, Any
 from app.db.schema import AgentState
 from app.agent.policies import PayrollPolicy
 from app.core.logging import get_logger
+from app.db.connection import SessionLocal
+from app.db.models import Approval, ApprovalDecision
 
 logger = get_logger(__name__)
 
@@ -89,11 +91,11 @@ def run(
     
     while datetime.utcnow() < deadline:
         # Check for approval in database
+        # Query directly from database if approval_repo is not provided
         if approval_repo:
-            approval = approval_repo.get_approval(state.batch_id)
-            
-            if approval and approval.get("decision") != "PENDING":
-                # Got a decision!
+            approval_dict = approval_repo.get_approval(state.batch_id)
+            if approval_dict and approval_dict.get("decision") != "PENDING":
+                approval = approval_dict
                 logger.info(
                     "Approval received",
                     extra={
@@ -103,6 +105,40 @@ def run(
                     }
                 )
                 break
+        else:
+            # Direct database query (fallback)
+            db = SessionLocal()
+            try:
+                approval_record = db.query(Approval).filter_by(
+                    batch_id=state.batch_id
+                ).order_by(Approval.created_at.desc()).first()
+                
+                if approval_record and approval_record.decision != ApprovalDecision.PENDING:
+                    # Convert to dict
+                    approval = {
+                        "decision": approval_record.decision.value.upper(),
+                        "approver": approval_record.approver,
+                        "timestamp": approval_record.created_at.isoformat(),
+                        "selected_ids": approval_record.selected_ids,
+                        "comment": approval_record.comment
+                    }
+                    logger.info(
+                        "Approval received (direct query)",
+                        extra={
+                            "batch_id": state.batch_id,
+                            "decision": approval["decision"],
+                            "approver": approval.get("approver")
+                        }
+                    )
+                    break
+            except Exception as e:
+                logger.error(
+                    "Error checking approval",
+                    extra={"batch_id": state.batch_id, "error": str(e)},
+                    exc_info=True
+                )
+            finally:
+                db.close()
         
         # No decision yet, wait and retry
         time.sleep(poll_interval)
