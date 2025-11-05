@@ -53,82 +53,97 @@ def run(state: AgentState) -> AgentState:
         new_state = run(state)
         print(len(new_state.lines))  # e.g., 10 employees
     """
-    logger.info(
-        "Starting data ingestion",
-        extra={
-            "batch_id": state.batch_id,
-            "month": state.month
-        }
-    )
-    
-    # ========================================
-    # DEMO DATA
-    # ========================================
-    # In production, replace this with actual data loading
-    # Example: lines = load_from_database(state.month)
-    
-    # Use Hardhat's default test accounts for local testing
-    # These addresses have ETH funded by default in local Hardhat node
-    demo_employees = [
-        {
-            "employee_id": "emp_001",
-            "wallet": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",  # Hardhat Account #1
-            "name": "Alice Smith"
-        },
-        {
-            "employee_id": "emp_002",
-            "wallet": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",  # Hardhat Account #2
-            "name": "Bob Johnson"
-        },
-        {
-            "employee_id": "emp_003",
-            "wallet": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",  # Hardhat Account #3
-            "name": "Carol Williams"
-        },
-        {
-            "employee_id": "emp_004",
-            "wallet": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",  # Hardhat Account #4
-            "name": "David Brown"
-        },
-        {
-            "employee_id": "emp_005",
-            "wallet": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",  # Hardhat Account #5
-            "name": "Eve Davis"
-        },
-    ]
-    
-    # Create PayrollLineDTO objects
-    # amount_usdc is initially 0 (will be computed in compute node)
-    lines: List[PayrollLineDTO] = []
-    
-    for emp in demo_employees:
-        line = PayrollLineDTO(
-            employee_id=emp["employee_id"],
-            wallet=emp["wallet"],
-            amount_usdc=Decimal("0"),  # Will be computed later
-            flags=[],
-            metadata={"name": emp["name"]}
+    try:
+        logger.info(
+            "Starting data ingestion",
+            extra={
+                "batch_id": state.batch_id,
+                "month": state.month
+            }
         )
-        lines.append(line)
-    
-    logger.info(
-        "Data ingestion completed",
-        extra={
-            "batch_id": state.batch_id,
-            "line_count": len(lines)
-        }
-    )
-    
-    # ========================================
-    # UPDATE STATE
-    # ========================================
-    # Create new state with updated lines
-    # state.model_copy() creates a shallow copy with specified fields updated
-    new_state = state.model_copy(
-        update={"lines": lines}
-    )
-    
-    return new_state
+        
+        # ========================================
+        # DEMO DATA
+        # ========================================
+        # In production, replace this with actual data loading
+        # Example: lines = load_from_database(state.month)
+        
+        # Use Hardhat's default test accounts for local testing
+        # These addresses have ETH funded by default in local Hardhat node
+        demo_employees = [
+            {
+                "employee_id": "emp_001",
+                "wallet": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",  # Hardhat Account #1
+                "name": "Alice Smith"
+            },
+            {
+                "employee_id": "emp_002",
+                "wallet": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",  # Hardhat Account #2
+                "name": "Bob Johnson"
+            },
+            {
+                "employee_id": "emp_003",
+                "wallet": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",  # Hardhat Account #3
+                "name": "Carol Williams"
+            },
+            {
+                "employee_id": "emp_004",
+                "wallet": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",  # Hardhat Account #4
+                "name": "David Brown"
+            },
+            {
+                "employee_id": "emp_005",
+                "wallet": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",  # Hardhat Account #5
+                "name": "Eve Davis"
+            },
+        ]
+        
+        # Create PayrollLineDTO objects
+        # amount_usdc is initially 0 (will be computed in compute node)
+        lines: List[PayrollLineDTO] = []
+        
+        for emp in demo_employees:
+            line = PayrollLineDTO(
+                employee_id=emp["employee_id"],
+                wallet=emp["wallet"],
+                amount_usdc=Decimal("0"),  # Will be computed later
+                flags=[],
+                metadata={"name": emp["name"]}
+            )
+            lines.append(line)
+        
+        logger.info(
+            "Data ingestion completed",
+            extra={
+                "batch_id": state.batch_id,
+                "line_count": len(lines)
+            }
+        )
+        
+        # ========================================
+        # UPDATE STATE
+        # ========================================
+        # Create new state with updated lines
+        # state.model_copy() creates a shallow copy with specified fields updated
+        new_state = state.model_copy(
+            update={"lines": lines}
+        )
+        
+        return new_state
+        
+    except Exception as e:
+        logger.error(
+            "[Error in node_ingest]",
+            extra={
+                "batch_id": state.batch_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        # Return state with error, don't break workflow
+        errors = list(state.errors) + [f"ingest: {str(e)}"]
+        return state.model_copy(update={"errors": errors})
 
 
 def load_from_database(month: str) -> List[PayrollLineDTO]:

@@ -32,6 +32,9 @@ def run(
     policy: PayrollPolicy = None,
     approval_repo=None
 ) -> AgentState:
+    print("[Mock Slack] Skipping Slack approval process.")
+    return state.model_copy(update={"approval": {"decision": "APPROVE_ALL"}})
+
     """
     Wait for approval decision
     

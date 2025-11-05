@@ -79,111 +79,126 @@ def run(
         print(new_state.lines[0].amount_usdc)  # Decimal("5500")
         print(new_state.lines[1].amount_usdc)  # Decimal("6000")
     """
-    if policy is None:
-        policy = PayrollPolicy()
-    
-    if ruleset is None:
-        # Default ruleset for demo
-        ruleset = get_demo_ruleset()
-    
-    logger.info(
-        "Starting amount computation",
-        extra={
-            "batch_id": state.batch_id,
-            "line_count": len(state.lines)
-        }
-    )
-    
-    # ========================================
-    # COMPUTE AMOUNT FOR EACH LINE
-    # ========================================
-    updated_lines = []
-    errors = list(state.errors)
-    
-    for line in state.lines:
-        # Compute salary using policy
-        try:
-            amount = policy.compute_salary(line.employee_id, ruleset)
-            
-            # Validate amount
-            is_valid, error_msg = policy.validate_amount(amount)
-            if not is_valid:
-                logger.warning(
-                    "Invalid computed amount",
+    try:
+        if policy is None:
+            policy = PayrollPolicy()
+        
+        if ruleset is None:
+            # Default ruleset for demo
+            ruleset = get_demo_ruleset()
+        
+        logger.info(
+            "Starting amount computation",
+            extra={
+                "batch_id": state.batch_id,
+                "line_count": len(state.lines)
+            }
+        )
+        
+        # ========================================
+        # COMPUTE AMOUNT FOR EACH LINE
+        # ========================================
+        updated_lines = []
+        errors = list(state.errors)
+        
+        for line in state.lines:
+            # Compute salary using policy
+            try:
+                amount = policy.compute_salary(line.employee_id, ruleset)
+                
+                # Validate amount
+                is_valid, error_msg = policy.validate_amount(amount)
+                if not is_valid:
+                    logger.warning(
+                        "Invalid computed amount",
+                        extra={
+                            "batch_id": state.batch_id,
+                            "employee_id": line.employee_id,
+                            "amount": str(amount),
+                            "error": error_msg
+                        }
+                    )
+                    errors.append(
+                        f"Employee {line.employee_id}: {error_msg}"
+                    )
+                    # Set to 0 to skip this line
+                    amount = Decimal("0")
+                
+                # Update line with computed amount
+                updated_line = line.model_copy(
+                    update={"amount_usdc": amount}
+                )
+                updated_lines.append(updated_line)
+                
+                logger.debug(
+                    "Computed amount for employee",
                     extra={
                         "batch_id": state.batch_id,
                         "employee_id": line.employee_id,
-                        "amount": str(amount),
-                        "error": error_msg
+                        "amount": str(amount)
                     }
                 )
-                errors.append(
-                    f"Employee {line.employee_id}: {error_msg}"
+                
+            except Exception as e:
+                logger.error(
+                    "Error computing amount",
+                    extra={
+                        "batch_id": state.batch_id,
+                        "employee_id": line.employee_id,
+                        "error": str(e)
+                    },
+                    exc_info=True
                 )
-                # Set to 0 to skip this line
-                amount = Decimal("0")
-            
-            # Update line with computed amount
-            updated_line = line.model_copy(
-                update={"amount_usdc": amount}
-            )
-            updated_lines.append(updated_line)
-            
-            logger.debug(
-                "Computed amount for employee",
-                extra={
-                    "batch_id": state.batch_id,
-                    "employee_id": line.employee_id,
-                    "amount": str(amount)
-                }
-            )
-            
-        except Exception as e:
-            logger.error(
-                "Error computing amount",
-                extra={
-                    "batch_id": state.batch_id,
-                    "employee_id": line.employee_id,
-                    "error": str(e)
-                },
-                exc_info=True
-            )
-            errors.append(
-                f"Employee {line.employee_id}: Computation error - {str(e)}"
-            )
-            # Keep line with 0 amount
-            updated_lines.append(line)
-    
-    # ========================================
-    # CALCULATE TOTALS
-    # ========================================
-    total_amount = sum(line.amount_usdc for line in updated_lines)
-    
-    logger.info(
-        "Amount computation completed",
-        extra={
-            "batch_id": state.batch_id,
-            "line_count": len(updated_lines),
-            "total_amount": str(total_amount)
-        }
-    )
-    
-    # ========================================
-    # UPDATE STATE
-    # ========================================
-    new_state = state.model_copy(
-        update={
-            "lines": updated_lines,
-            "errors": errors,
-            "metadata": {
-                **state.metadata,
-                "total_amount": str(total_amount),
-                "computation_complete": True
+                errors.append(
+                    f"Employee {line.employee_id}: Computation error - {str(e)}"
+                )
+                # Keep line with 0 amount
+                updated_lines.append(line)
+        
+        # ========================================
+        # CALCULATE TOTALS
+        # ========================================
+        total_amount = sum(line.amount_usdc for line in updated_lines)
+        
+        logger.info(
+            "Amount computation completed",
+            extra={
+                "batch_id": state.batch_id,
+                "line_count": len(updated_lines),
+                "total_amount": str(total_amount)
             }
-        }
-    )
-    
-    return new_state
+        )
+        
+        # ========================================
+        # UPDATE STATE
+        # ========================================
+        new_state = state.model_copy(
+            update={
+                "lines": updated_lines,
+                "errors": errors,
+                "metadata": {
+                    **state.metadata,
+                    "total_amount": str(total_amount),
+                    "computation_complete": True
+                }
+            }
+        )
+        
+        return new_state
+        
+    except Exception as e:
+        logger.error(
+            "[Error in node_compute]",
+            extra={
+                "batch_id": state.batch_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        # Return state with error, don't break workflow
+        errors = list(state.errors) + [f"compute: {str(e)}"]
+        return state.model_copy(update={"errors": errors})
 
 
 def get_demo_ruleset() -> Dict[str, Any]:

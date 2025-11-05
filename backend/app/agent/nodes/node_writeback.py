@@ -166,17 +166,18 @@ def run(state: AgentState, webhook_client=None, db_repo=None) -> AgentState:
                 extra={"batch_id": state.batch_id}
             )
         except Exception as e:
-            error_msg = f"Direct database save failed: {str(e)}"
-            errors.append(error_msg)
-            
-            logger.error(
-                "Direct database save error",
+            # Use WARNING level for database errors (graceful degradation)
+            logger.warning(
+                "[DB WARN] Direct database save failed",
                 extra={
                     "batch_id": state.batch_id,
-                    "error": str(e)
+                    "error": str(e),
+                    "error_type": type(e).__name__
                 },
                 exc_info=True
             )
+            error_msg = f"db_save: {str(e)}"
+            errors.append(error_msg)
     
     # ========================================
     # UPDATE STATE
@@ -289,6 +290,7 @@ def save_batch_to_database(state: AgentState) -> None:
             )
         else:
             # Create new batch
+            # Note: Approval information is stored in Approval model, not PayrollBatch
             batch = PayrollBatch(
                 id=state.batch_id,
                 month=state.month,
@@ -296,9 +298,7 @@ def save_batch_to_database(state: AgentState) -> None:
                 total_amount=sum(line.amount_usdc for line in state.lines),
                 line_count=len(state.lines),
                 anomaly_count=len([line for line in state.lines if line.flags]),
-                summary=state.metadata.get("summary"),
-                approved_at=datetime.fromisoformat(state.approval["timestamp"]) if state.approval else None,
-                approver_id=state.approval.get("approver") if state.approval else None
+                summary=state.metadata.get("summary")
             )
             db.add(batch)
             
@@ -330,15 +330,20 @@ def save_batch_to_database(state: AgentState) -> None:
             existing_tx = db.query(Transaction).filter_by(tx_hash=tx_hash).first()
             
             if not existing_tx:
+                # Calculate total amount from lines for this transaction
+                # Note: In a real scenario, we'd know which lines are in each transaction
+                # For now, we'll use the total from all lines
+                total_amount = sum(line.amount_usdc for line in state.lines)
+                
                 transaction = Transaction(
                     id=str(uuid.uuid4()),
                     batch_id=state.batch_id,
                     tx_hash=tx_hash,
                     status=TransactionStatus.SUCCESS,
-                    amount=Decimal('0'),  # Would need to calculate from lines
+                    total_amount=total_amount,  # Use total_amount instead of amount
                     recipient_count=len(state.lines),
                     gas_used=0,  # Would need from blockchain receipt
-                    confirmed_at=datetime.utcnow()
+                    # Note: Transaction model uses created_at/updated_at, not confirmed_at
                 )
                 db.add(transaction)
         
@@ -355,14 +360,18 @@ def save_batch_to_database(state: AgentState) -> None:
         
     except Exception as e:
         db.rollback()
-        logger.error(
-            "Failed to save batch to database",
+        # Use WARNING level for database errors (graceful degradation)
+        logger.warning(
+            "[DB WARN] Failed to save batch to database",
             extra={
                 "batch_id": state.batch_id,
-                "error": str(e)
+                "error": str(e),
+                "error_type": type(e).__name__
             },
             exc_info=True
         )
+        # Don't raise - let caller handle gracefully
+        # The error will be added to state.errors by the safe_node decorator
         raise
     finally:
         db.close()
