@@ -104,7 +104,7 @@ make backend-seed
 - **Backend API**: http://localhost:8080
 - **Frontend UI**: http://localhost:3000
 - **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (port conflict, needs adjustment)
+- **Grafana**: http://localhost:3001
 
 ## 📖 Detailed Documentation
 

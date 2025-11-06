@@ -49,7 +49,7 @@ backend-up:
 	@echo "✅ Backend services started"
 	@echo "   - API: http://localhost:8080"
 	@echo "   - Prometheus: http://localhost:9090"
-	@echo "   - Grafana: http://localhost:3000"
+	@echo "   - Grafana: http://localhost:3001"
 
 # Stop backend services
 backend-down:
@@ -136,7 +136,7 @@ up-all: backend-up frontend-up
 	@echo "Backend API: http://localhost:8080"
 	@echo "Frontend UI:  http://localhost:3000"
 	@echo "Prometheus: http://localhost:9090"
-	@echo "Grafana:    http://localhost:3000 (Grafana port conflicts with frontend)"
+	@echo "Grafana:    http://localhost:3001"
 	@echo "=========================================="
 
 # Stop all services

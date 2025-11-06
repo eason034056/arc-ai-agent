@@ -13,10 +13,12 @@ const nextConfig = {
 
   // API 代理（開發時避免 CORS）
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:8080';
+    
     return [
       {
         source: '/api/backend/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/:path*`,
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },

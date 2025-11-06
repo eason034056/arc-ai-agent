@@ -149,10 +149,10 @@ services:
     container_name: arc-payroll-grafana
     
     # Port mapping
-    # Access Grafana UI at http://localhost:3000
+    # Access Grafana UI at http://localhost:3001
     # Default login: admin/admin
     ports:
-      - "3000:3000"
+      - "3001:3000"
     
     # Wait for Prometheus to be available
     depends_on:
