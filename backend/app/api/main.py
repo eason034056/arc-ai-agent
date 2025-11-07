@@ -152,11 +152,28 @@ async def trigger_payroll_batch(month: str) -> dict:
     )
 
     try:
-        # Run full workflow (mock mode for now)
+        # Get Slack client for approval workflow
+        # If Slack is not configured, slack_client will be None and workflow will continue without Slack
+        slack_client = None
+        try:
+            from app.slack.app import slack_app
+            if slack_app and slack_app.client:
+                slack_client = slack_app.client
+                logger.debug("Slack client available for approval workflow")
+            else:
+                logger.debug("Slack app not configured, continuing without Slack integration")
+        except Exception as e:
+            logger.warning(
+                "Slack not configured or unavailable, continuing without Slack integration",
+                extra={"error": str(e)}
+            )
+        
+        # Run full workflow
         final_state = run_payroll_workflow(
             batch_id=batch_id,
             month=month,
             policy=PayrollPolicy(),
+            slack_client=slack_client,
         )
 
         # Handle both AgentState objects and dicts (LangGraph may return dict)
@@ -323,10 +340,38 @@ async def slack_events(request: Request):
     """
     from app.slack.app import slack_handler
     
-    logger.debug("Received Slack event")
+    if not slack_handler:
+        logger.warning("Slack events received but Slack integration is not configured")
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Slack integration not configured"}
+        )
     
     # Use Slack Bolt's FastAPI adapter to handle the request
-    return await slack_handler.handle(request)
+    # IMPORTANT: Do not parse body here, let SlackRequestHandler handle it
+    # This ensures ack() can be called within 3 seconds
+    logger.info("📥 Received Slack event request")
+    try:
+        # Log request details for debugging
+        logger.debug(
+            "Forwarding Slack event to handler",
+            extra={
+                "method": request.method,
+                "url": str(request.url),
+                "headers": dict(request.headers)
+            }
+        )
+        response = await slack_handler.handle(request)
+        logger.info("✅ Slack handler completed successfully")
+        return response
+    except Exception as e:
+        logger.error(
+            "Error handling Slack event",
+            extra={"error": str(e)},
+            exc_info=True
+        )
+        # Return 200 to prevent Slack from retrying
+        return JSONResponse(status_code=200, content={"ok": True})
 
 
 @app.post("/slack/commands")
@@ -345,6 +390,13 @@ async def slack_commands(request: Request):
         Response from Slack Bolt handler
     """
     from app.slack.app import slack_handler
+    
+    if not slack_handler:
+        logger.warning("Slack command received but Slack integration is not configured")
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Slack integration not configured"}
+        )
     
     logger.debug("Received Slack command")
     

@@ -21,9 +21,6 @@ logger = get_logger(__name__)
 
 
 def run(state: AgentState, slack_client=None) -> AgentState:
-    print("[Mock Slack] Skipping Slack approval process.")
-    return state.model_copy(update={"approval": {"decision": "APPROVE_ALL"}})
-
     """
     Prepare and send approval request to Slack
     

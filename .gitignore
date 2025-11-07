@@ -105,6 +105,7 @@ backend/abi/*.address
 # ============================================
 *.tmp
 *.bak
+*.bak2
 *.backup
 .cache/
 

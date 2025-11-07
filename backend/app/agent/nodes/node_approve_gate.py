@@ -32,9 +32,6 @@ def run(
     policy: PayrollPolicy = None,
     approval_repo=None
 ) -> AgentState:
-    print("[Mock Slack] Skipping Slack approval process.")
-    return state.model_copy(update={"approval": {"decision": "APPROVE_ALL"}})
-
     """
     Wait for approval decision
     
@@ -67,6 +64,36 @@ def run(
     """
     if policy is None:
         policy = PayrollPolicy()
+    
+    # ========================================
+    # DEVELOPMENT MODE: AUTO-APPROVE
+    # ========================================
+    # If Slack is not configured, auto-approve in dev mode
+    from app.core.config import get_settings
+    settings = get_settings()
+    
+    if settings.is_dev:
+        try:
+            from app.slack.app import slack_app
+            if slack_app is None:
+                logger.warning(
+                    "Slack not available in dev mode, auto-approving for testing",
+                    extra={"batch_id": state.batch_id}
+                )
+                return state.model_copy(update={
+                    "approval": {
+                        "decision": "APPROVE_ALL",
+                        "approver": "DEV_AUTO",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "reason": "Auto-approved in dev mode (Slack not configured)"
+                    }
+                })
+        except Exception as e:
+            logger.debug(
+                "Could not check Slack status, continuing with normal flow",
+                extra={"batch_id": state.batch_id, "error": str(e)}
+            )
+            # Continue with normal flow if Slack check fails
     
     logger.info(
         "Waiting for approval",
@@ -166,13 +193,30 @@ def run(
             }
         )
         
-        # Default to reject on timeout
-        approval = {
-            "decision": "REJECT",
-            "approver": "SYSTEM",
-            "reason": "Timeout",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        # In dev mode, auto-approve on timeout (for testing)
+        # In production, reject on timeout
+        from app.core.config import get_settings
+        settings = get_settings()
+        
+        if settings.is_dev:
+            logger.info(
+                "Auto-approving in dev mode due to timeout",
+                extra={"batch_id": state.batch_id}
+            )
+            approval = {
+                "decision": "APPROVE_ALL",
+                "approver": "DEV_AUTO_TIMEOUT",
+                "reason": "Auto-approved in dev mode (timeout reached, no button click received)",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            # Default to reject on timeout in production
+            approval = {
+                "decision": "REJECT",
+                "approver": "SYSTEM",
+                "reason": "Timeout",
+                "timestamp": datetime.utcnow().isoformat()
+            }
     
     # ========================================
     # HANDLE PARTIAL APPROVAL

@@ -76,15 +76,17 @@ class Settings(BaseSettings):
     # ========================================
     # slack_bot_token: Bot OAuth token from Slack app
     # Get from: https://api.slack.com/apps > OAuth & Permissions
+    # Optional: If not provided, Slack integration will be disabled
     slack_bot_token: str = Field(
-        ...,
+        default="",
         description="Slack bot OAuth token"
     )
     
     # slack_signing_secret: Used to verify Slack requests
     # Get from: https://api.slack.com/apps > Basic Information
+    # Optional: If not provided, Slack integration will be disabled
     slack_signing_secret: str = Field(
-        ...,
+        default="",
         description="Slack signing secret for request verification"
     )
     
