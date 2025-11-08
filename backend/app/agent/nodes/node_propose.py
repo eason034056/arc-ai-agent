@@ -175,84 +175,125 @@ def run(state: AgentState, slack_client=None) -> AgentState:
 
 
 def create_batch_in_database(state: AgentState, summary: Dict[str, Any]) -> None:
-    """
-    Create PayrollBatch record in database
-    
-    This ensures the batch exists before Slack buttons are clicked.
-    If the batch already exists, this is a no-op.
-    
-    Args:
-        state: Current agent state
-        summary: Batch summary dictionary
-        
-    Raises:
-        Exception: If database operation fails
-    """
+    """Create PayrollBatch and PayrollLine records in database"""
     from app.db.connection import SessionLocal
-    from app.db.models import PayrollBatch, BatchStatus
+    from app.db.models import PayrollBatch, PayrollLine, BatchStatus
+    import uuid
+    from decimal import Decimal
     
     db = SessionLocal()
     try:
-        # Check if batch already exists
         batch = db.query(PayrollBatch).filter_by(id=state.batch_id).first()
         
         if batch:
-            logger.debug(
-                "Batch already exists in database",
-                extra={"batch_id": state.batch_id}
+            logger.debug("Batch already exists in database", extra={"batch_id": state.batch_id})
+        else:
+            # ✅ 方法 1: 優先使用 summary 中已計算好的資料
+            total_amount = float(summary.get("total_amount", 0))
+            anomaly_count = int(summary.get("anomaly_count", 0))
+            
+            # 如果 summary 沒有資料,才從 lines 計算
+            if total_amount == 0 and len(state.lines) > 0:
+                for line in state.lines:
+                    try:
+                        # ✅ PayrollLineDTO 的正確屬性名
+                        if hasattr(line, 'amount_usdc'):
+                            total_amount += float(line.amount_usdc)
+                        elif isinstance(line, dict):
+                            total_amount += float(line.get("amount_usdc", 0) or line.get("amount", 0))
+                        
+                        # 檢查 flags (有 flag 就算 anomaly)
+                        if hasattr(line, 'flags') and line.flags:
+                            anomaly_count += 1
+                        elif isinstance(line, dict) and line.get("flags"):
+                            anomaly_count += 1
+                            
+                    except (AttributeError, TypeError, ValueError) as e:
+                        logger.warning(f"Failed to process line: {e}")
+                        continue
+            
+            # Create batch
+            batch = PayrollBatch(
+                id=state.batch_id,
+                month=state.month,
+                status=BatchStatus.PENDING_APPROVAL,
+                total_amount=total_amount,
+                line_count=len(state.lines),
+                anomaly_count=anomaly_count,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
             )
-            return
+            
+            db.add(batch)
+            db.flush()  # Flush to get batch ID before adding lines
+            logger.info(
+                "✅ Created PayrollBatch record in database",
+                extra={
+                    "batch_id": state.batch_id,
+                    "month": state.month,
+                    "total_amount": total_amount,
+                    "line_count": len(state.lines),
+                    "anomaly_count": anomaly_count
+                }
+            )
         
-        # Calculate total amount from lines
-        total_amount = sum(
-            float(line.get("amount", 0)) 
-            for line in state.lines
-        )
+        # ✅ 保存 PayrollLine 记录（这样 partial approval 才能看到数据）
+        lines_saved = 0
+        for line in state.lines:
+            try:
+                # Extract line data
+                if hasattr(line, 'employee_id'):
+                    employee_id = line.employee_id
+                    wallet = line.wallet
+                    amount_usdc = Decimal(str(line.amount_usdc))
+                    flags = line.flags or []
+                elif isinstance(line, dict):
+                    employee_id = line.get("employee_id")
+                    wallet = line.get("wallet")
+                    amount_usdc = Decimal(str(line.get("amount_usdc", 0)))
+                    flags = line.get("flags", [])
+                else:
+                    logger.warning(f"Skipping invalid line format: {type(line)}")
+                    continue
+                
+                # Check if line already exists
+                existing_line = db.query(PayrollLine).filter_by(
+                    batch_id=state.batch_id,
+                    employee_id=employee_id
+                ).first()
+                
+                if not existing_line:
+                    payroll_line = PayrollLine(
+                        id=str(uuid.uuid4()),
+                        batch_id=state.batch_id,
+                        employee_id=employee_id,
+                        wallet=wallet,
+                        amount_usdc=amount_usdc,
+                        flags=flags if isinstance(flags, list) else [],
+                    )
+                    db.add(payroll_line)
+                    lines_saved += 1
+                    
+            except Exception as e:
+                logger.warning(f"Failed to save line for employee {employee_id}: {e}")
+                continue
         
-        # Count anomalies
-        anomaly_count = len([
-            line for line in state.lines 
-            if line.get("has_anomaly", False)
-        ])
-        
-        # Create new batch record
-        batch = PayrollBatch(
-            id=state.batch_id,
-            month=state.month,
-            status=BatchStatus.PENDING_APPROVAL,
-            total_amount=total_amount,
-            line_count=len(state.lines),
-            anomaly_count=anomaly_count,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
-        
-        db.add(batch)
         db.commit()
         
-        logger.info(
-            "✅ Created PayrollBatch record in database",
-            extra={
-                "batch_id": state.batch_id,
-                "month": state.month,
-                "total_amount": total_amount,
-                "line_count": len(state.lines),
-                "anomaly_count": anomaly_count
-            }
-        )
+        if lines_saved > 0:
+            logger.info(
+                "✅ Saved PayrollLine records to database",
+                extra={
+                    "batch_id": state.batch_id,
+                    "lines_saved": lines_saved,
+                    "total_lines": len(state.lines)
+                }
+            )
         
     except Exception as e:
         db.rollback()
-        logger.error(
-            "❌ Failed to create batch record",
-            extra={
-                "batch_id": state.batch_id,
-                "error": str(e)
-            },
-            exc_info=True
-        )
+        logger.error("❌ Failed to create batch record", extra={"batch_id": state.batch_id, "error": str(e)}, exc_info=True)
         raise
-        
     finally:
         db.close()
 
