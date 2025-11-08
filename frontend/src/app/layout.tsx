@@ -1,11 +1,8 @@
-/**
- * Root Layout
- * Root layout component - shared layout for all pages
- */
-
-import type { Metadata } from 'next'
+// app/layout.tsx
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { NavLinks } from '@/components/navigation/NavLinks'
 import './globals.css'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Arc Payroll Management',
@@ -19,44 +16,46 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">
+      <body className="min-h-screen bg-primary-200">
         <QueryProvider>
-          <nav className="bg-white shadow">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex">
-                  <div className="flex-shrink-0 flex items-center">
-                    <h1 className="text-xl font-bold text-primary-600">
-                      Arc Payroll
-                    </h1>
-                  </div>
-                  <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <a
-                      href="/"
-                      className="border-primary-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                    >
-                      Overview
-                    </a>
-                    <a
-                      href="/batches"
-                      className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                    >
-                      Batches
-                    </a>
-                    <a
-                      href="/settings"
-                      className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                    >
-                      Settings
-                    </a>
-                  </div>
+          <div className="flex h-screen p-4 pt-0">
+            {/* Sidebar Container */}
+            <div className="relative flex flex-col items-center h-full">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                <div className="w-32 h-32 overflow-hidden">
+                  <img 
+                    src="/logo.png" 
+                    alt="Arc Payroll Logo" 
+                    className="w-full h-full object-contain"
+                  />
                 </div>
               </div>
+
+              {/* Sidebar - 固定寬度 20，從 logo 下方開始 */}
+              <aside className="w-20 bg-primary-50 border border-primary-100 rounded-xl flex flex-col items-center py-6 space-y-8 flex-1 min-h-0 mt-[90px] mb-4">
+                {/* Navigation Links */}
+                <nav className="flex-1 flex flex-col items-center">
+                  <NavLinks />
+                </nav>
+
+                {/* Bottom Section */}
+                <div className="flex flex-col items-center space-y-4">
+                  <button className="w-10 h-10 rounded-full bg-primary-600/[.20] flex items-center justify-center text-primary-900 hover:bg-primary-600/[.20] transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </button>
+                </div>
+              </aside>
             </div>
-          </nav>
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-hidden bg-primary-200">
+              <div className="h-full px-8 pt-2 pb-4">
+                {children}
+              </div>
+            </main>
+          </div>
         </QueryProvider>
       </body>
     </html>

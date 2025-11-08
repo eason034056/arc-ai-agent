@@ -38,33 +38,33 @@ export function StatsCard({
   if (isLoading) {
     return (
       <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+        <div className="px-3 py-3 sm:px-4 sm:py-3 animate-pulse">
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+          <div className="h-6 sm:h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/3"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="flex items-center justify-between mb-2">
-          <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
-          {icon && <div className="text-gray-400">{icon}</div>}
+    <div className="bg-primary-50 border border-primary-100 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+      <div className="px-3 py-3 sm:px-4 sm:py-3">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <dt className="text-xs sm:text-sm font-medium text-primary-800 truncate">{title}</dt>
+          {icon && <div className="text-primary-900">{icon}</div>}
         </div>
         
-        <dd className="mt-1 text-3xl font-semibold text-gray-900">{value}</dd>
+        <dd className="mt-1 sm:mt-2 text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-900">{value}</dd>
         
         {subtitle && (
-          <dd className={`mt-2 text-sm ${colorClasses[color]} inline-block px-2 py-1 rounded`}>
+          <dd className={`mt-2 sm:mt-3 text-xs ${colorClasses[color]} inline-block px-2 py-0.5 rounded`}>
             {subtitle}
           </dd>
         )}
         
         {trend && (
-          <div className="mt-2 flex items-center text-sm">
+          <div className="mt-2 sm:mt-3 flex items-center text-xs sm:text-sm">
             <span
               className={`flex items-center ${
                 trend.isPositive ? 'text-green-600' : 'text-red-600'
@@ -89,7 +89,7 @@ export function StatsCard({
               )}
               {Math.abs(trend.value)}%
             </span>
-            <span className="text-gray-500 ml-1">vs last month</span>
+            <span className="text-primary-300 ml-1">vs last month</span>
           </div>
         )}
       </div>
