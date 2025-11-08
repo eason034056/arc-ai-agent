@@ -15,7 +15,7 @@ import os
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -142,17 +142,17 @@ class Settings(BaseSettings):
     # ========================================
     # AI / LLM CONFIGURATION
     # ========================================
-    # openai_api_key: OpenAI API key for anomaly detection
+    # gemini_api_key: Google Gemini API key for AI summarization
     # Optional: System works without AI features if not provided
-    openai_api_key: str = Field(
+    gemini_api_key: str = Field(
         default="",
-        description="OpenAI API key for AI features"
+        description="Google Gemini API key for AI features"
     )
     
-    # openai_model: Which OpenAI model to use
-    openai_model: str = Field(
-        default="gpt-4",
-        description="OpenAI model name"
+    # gemini_model: Which Gemini model to use
+    gemini_model: str = Field(
+        default="gemini-2.5-flash",
+        description="Google Gemini model name"
     )
     
     # ========================================
@@ -257,6 +257,20 @@ class Settings(BaseSettings):
     # ========================================
     # VALIDATORS
     # ========================================
+    @model_validator(mode="after")
+    def validate_gemini_api_key(self):
+        """
+        Support backward compatibility: if GEMINI_API_KEY is not set but OPENAI_API_KEY is,
+        use OPENAI_API_KEY as GEMINI_API_KEY (for users who have Gemini key in OPENAI_API_KEY)
+        """
+        import os
+        if not self.gemini_api_key:
+            # Try to get from OPENAI_API_KEY for backward compatibility
+            openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("openai_api_key")
+            if openai_key:
+                self.gemini_api_key = openai_key
+        return self
+    
     @field_validator("private_key")
     @classmethod
     def validate_private_key(cls, v: str) -> str:
