@@ -6,10 +6,12 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat run scripts/deploy.ts --network arcTestnet",
-    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "node": "hardhat node",
-    "clean": "hardhat clean"
+    "clean": "hardhat clean",
+    "deploy:local": "hardhat run scripts/deploy-local.ts --network localhost",
+    "deploy:arc": "hardhat run scripts/deploy-arc-testnet.ts --network arcTestnet",
+    "test:arc": "hardhat run scripts/test-arc-payout.ts --network arcTestnet",
+    "generate-wallet": "hardhat run scripts/generate-wallet.ts"
   },
   "keywords": [
     "arc",

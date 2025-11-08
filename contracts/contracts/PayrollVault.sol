@@ -144,7 +144,6 @@ contract PayrollVault is AccessControl, Pausable {
      * @param recipients Array of recipient addresses
      * @param amounts Corresponding amount array (unit: USDC smallest unit, e.g. 6 decimals)
      * @param batchId Unique batch identifier (prevents duplicate payouts)
-     * @param meta Batch metadata (e.g.: "2025-11 payroll")
      * 
      * Requirements:
      * - Contract not paused
@@ -162,8 +161,7 @@ contract PayrollVault is AccessControl, Pausable {
     function batchPayout(
         address[] calldata recipients,
         uint256[] calldata amounts,
-        bytes32 batchId,
-        string calldata meta
+        bytes32 batchId
     ) external whenNotPaused onlyRole(APPROVER_ROLE) {
         // Verify batch not processed before
         require(!processedBatch[batchId], "BATCH_DONE");
