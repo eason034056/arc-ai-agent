@@ -57,6 +57,13 @@ app.add_middleware(
 # ========================================
 # STARTUP / SHUTDOWN
 # ========================================
+# 注释掉这个 middleware，因为它会消费 request body
+# @app.middleware("http")
+# async def debug_slack_requests(request: Request, call_next):
+#     if "/slack/events" in str(request.url):
+#         body = await request.body()
+#         logger.info(f"🧩 Incoming Slack payload:\nHeaders: {request.headers}\nBody: {body[:500]}")
+#     return await call_next(request)
 
 @app.on_event("startup")
 async def startup_event():
@@ -321,51 +328,78 @@ async def list_batches(
 # SLACK ENDPOINTS (Production Safe)
 # ========================================
 
+from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
+from slack_sdk.web.async_client import AsyncWebClient
+
 @app.post("/slack/events")
 async def slack_events(request: Request):
     """
-    Slack events endpoint (Production safe)
-    Handles:
-      - interactive button clicks
-      - slash commands
-      - url_verification handshake
+    Handles Slack Events API (messages, events) and Interactive Components (buttons, modals).
+    
+    This endpoint handles:
+    - Events API: Message events, app mentions, etc.
+    - Interactive Components: Button clicks, modal submissions
+    - URL Verification: Slack's initial handshake
+    
+    Note: Slack sends button clicks to the Interactive Components URL,
+    which should be the same as Events API URL in most cases.
     """
 
-    from app.slack.app import slack_handler
+    from app.slack.app import slack_handler, slack_app  # <- 確保已初始化
 
-    if not slack_handler:
-        logger.warning("⚠️ Slack events received but Slack integration is not configured")
-        return JSONResponse(status_code=503, content={"error": "Slack integration not configured"})
+    if not slack_handler or not slack_app:
+        logger.warning("⚠️ Slack app not initialized")
+        return JSONResponse(status_code=503, content={"error": "Slack not configured"})
 
-    logger.info("📥 Received Slack event request", extra={
-        "method": request.method,
-        "url": str(request.url),
-    })
+    # 记录请求信息（不读取 body，避免消费 stream）
+    content_type = request.headers.get("content-type", "")
+    user_agent = request.headers.get("user-agent", "")
+    slack_signature = request.headers.get("x-slack-signature", "")
+    slack_timestamp = request.headers.get("x-slack-request-timestamp", "")
+    
+    # 检查是否是 interactive component 请求
+    is_interactive = "application/x-www-form-urlencoded" in content_type or "payload" in str(request.url.query)
+    
+    logger.info(
+        "📥 Received Slack request",
+        extra={
+            "method": request.method,
+            "url": str(request.url),
+            "path": request.url.path,
+            "content_type": content_type,
+            "is_interactive": is_interactive,
+            "has_slack_signature": bool(slack_signature),
+            "has_slack_timestamp": bool(slack_timestamp),
+            "user_agent": user_agent[:50] if user_agent else None,
+        }
+    )
 
-    # Step 1️⃣ Handle URL verification handshake instantly
+    # ✅ 直接传递 request 给 handler
+    # AsyncSlackRequestHandler 会自己处理 body 读取、URL verification 和签名验证
+    # 不要在这里读取 body，否则会消费掉 request stream
     try:
-        body = await request.json()
-        if body.get("type") == "url_verification":
-            logger.info("🔐 Slack URL verification challenge received")
-            return JSONResponse(content={"challenge": body.get("challenge")})
-    except Exception:
-        # ignore if not json (interactive payload is form-data)
-        pass
+        response = await slack_handler.handle(request)
+        logger.info(
+            "✅ Slack handler completed",
+            extra={
+                "status_code": response.status_code if hasattr(response, 'status_code') else None,
+                "content_type": content_type,
+                "is_interactive": is_interactive
+            }
+        )
+        return response
+    except Exception as e:
+        logger.exception(
+            f"❌ Slack handler exception: {e}",
+            extra={
+                "content_type": content_type,
+                "is_interactive": is_interactive,
+                "error_type": type(e).__name__
+            }
+        )
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
-    # Step 2️⃣ Run Slack Bolt in background to avoid blocking the 3s window
-    async def process_in_background(req: Request):
-        try:
-            await slack_handler.handle(req)
-            logger.info("✅ Slack handler completed successfully")
-        except Exception as e:
-            logger.exception(f"❌ Slack handler error (background): {e}")
 
-    # 🚀 Launch background task — does not block Slack 3s timeout
-    asyncio.create_task(process_in_background(request))
-
-    # Step 3️⃣ Immediately return HTTP 200 OK to Slack
-    logger.debug("⚡ Fast ack returned to Slack to prevent retries")
-    return JSONResponse(status_code=200, content={"ok": True})
 
 
 
