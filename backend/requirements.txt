@@ -89,9 +89,9 @@ tenacity==8.5.*
 # - Core orchestration engine for the payroll workflow
 langgraph==0.2.*
 
-# OpenAI: OpenAI API client
-# - Used for anomaly detection and summarization (optional)
-openai==1.47.*
+# Google Generative AI: Google Gemini API client
+# - Used for AI summarization (optional)
+google-generativeai==0.8.*
 
 # Scikit-learn: Machine learning library
 # - Used for anomaly detection algorithms

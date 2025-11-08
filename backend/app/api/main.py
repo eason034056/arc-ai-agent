@@ -16,6 +16,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
+import asyncio 
 
 from app.core.config import get_settings
 from app.core.logging import setup_logging, get_logger
@@ -144,7 +145,7 @@ async def trigger_payroll_batch(month: str) -> dict:
     from app.agent.policies import PayrollPolicy
     from app.db.schema import AgentState
 
-    batch_id = f"batch_{uuid4().hex[:8]}"
+    batch_id = f"batch_{month.replace('-', '')}_{uuid4().hex[:8]}"
 
     logger.info(
         "Manual trigger requested",
@@ -317,61 +318,55 @@ async def list_batches(
 
 
 # ========================================
-# SLACK ENDPOINTS
+# SLACK ENDPOINTS (Production Safe)
 # ========================================
 
 @app.post("/slack/events")
 async def slack_events(request: Request):
     """
-    Slack events endpoint
-    
+    Slack events endpoint (Production safe)
     Handles:
-    - Interactive component actions (button clicks)
-    - Slash commands
-    - Events (messages, etc.)
-    
-    This endpoint is configured in your Slack app settings.
-    
-    Args:
-        request: FastAPI Request object containing Slack event data
-        
-    Returns:
-        Response from Slack Bolt handler
+      - interactive button clicks
+      - slash commands
+      - url_verification handshake
     """
+
     from app.slack.app import slack_handler
-    
+
     if not slack_handler:
-        logger.warning("Slack events received but Slack integration is not configured")
-        return JSONResponse(
-            status_code=503,
-            content={"error": "Slack integration not configured"}
-        )
-    
-    # Use Slack Bolt's FastAPI adapter to handle the request
-    # IMPORTANT: Do not parse body here, let SlackRequestHandler handle it
-    # This ensures ack() can be called within 3 seconds
-    logger.info("📥 Received Slack event request")
+        logger.warning("⚠️ Slack events received but Slack integration is not configured")
+        return JSONResponse(status_code=503, content={"error": "Slack integration not configured"})
+
+    logger.info("📥 Received Slack event request", extra={
+        "method": request.method,
+        "url": str(request.url),
+    })
+
+    # Step 1️⃣ Handle URL verification handshake instantly
     try:
-        # Log request details for debugging
-        logger.debug(
-            "Forwarding Slack event to handler",
-            extra={
-                "method": request.method,
-                "url": str(request.url),
-                "headers": dict(request.headers)
-            }
-        )
-        response = await slack_handler.handle(request)
-        logger.info("✅ Slack handler completed successfully")
-        return response
-    except Exception as e:
-        logger.error(
-            "Error handling Slack event",
-            extra={"error": str(e)},
-            exc_info=True
-        )
-        # Return 200 to prevent Slack from retrying
-        return JSONResponse(status_code=200, content={"ok": True})
+        body = await request.json()
+        if body.get("type") == "url_verification":
+            logger.info("🔐 Slack URL verification challenge received")
+            return JSONResponse(content={"challenge": body.get("challenge")})
+    except Exception:
+        # ignore if not json (interactive payload is form-data)
+        pass
+
+    # Step 2️⃣ Run Slack Bolt in background to avoid blocking the 3s window
+    async def process_in_background(req: Request):
+        try:
+            await slack_handler.handle(req)
+            logger.info("✅ Slack handler completed successfully")
+        except Exception as e:
+            logger.exception(f"❌ Slack handler error (background): {e}")
+
+    # 🚀 Launch background task — does not block Slack 3s timeout
+    asyncio.create_task(process_in_background(request))
+
+    # Step 3️⃣ Immediately return HTTP 200 OK to Slack
+    logger.debug("⚡ Fast ack returned to Slack to prevent retries")
+    return JSONResponse(status_code=200, content={"ok": True})
+
 
 
 @app.post("/slack/commands")

@@ -11,7 +11,7 @@ Summary includes:
 - Top amounts
 - Comparison to previous months
 
-Can optionally use AI (OpenAI) for natural language generation.
+Can optionally use AI (Google Gemini) for natural language generation.
 """
 
 from decimal import Decimal
@@ -194,9 +194,9 @@ def run(state: AgentState, use_ai: bool = False) -> AgentState:
 
 def generate_ai_narrative(summary: Dict[str, Any]) -> str:
     """
-    Generate natural language summary using OpenAI
+    Generate natural language summary using Google Gemini
     
-    This is optional and requires OPENAI_API_KEY in settings.
+    This is optional and requires GEMINI_API_KEY in settings.
     
     Args:
         summary: Statistical summary dictionary
@@ -212,40 +212,127 @@ def generate_ai_narrative(summary: Dict[str, Any]) -> str:
     """
     settings = get_settings()
     
-    if not settings.openai_api_key:
+    if not settings.gemini_api_key:
         return "AI narrative unavailable (no API key)"
     
     try:
-        from openai import OpenAI
+        import google.generativeai as genai
         
-        client = OpenAI(api_key=settings.openai_api_key)
+        # Configure Gemini API
+        genai.configure(api_key=settings.gemini_api_key)
         
         # Create prompt for AI
         prompt = f"""
-        Summarize this payroll batch in 2-3 sentences for management review:
-        
+        You are an AI payroll analyst preparing a short Slack summary.
+
+        Write exactly 3 sentences:
+        1. State the payroll month, total amount, and employee count.
+        2. Describe anomalies and departments affected.
+        3. Give a concise recommendation (e.g., approve, review, or reject).
+
+        Example:
+        > The October 2025 payroll totals $18,450 USDC for 4 employees.
+        > Two anomalies were detected in the Finance department.
+        > Recommend reviewing flagged payments before approval.
+
         Month: {summary['month']}
         Total: ${summary['total_amount']} USDC
-        Recipients: {summary['recipient_count']}
+        Employees: {summary['recipient_count']}
         Anomalies: {summary['anomaly_count']}
-        Average: ${summary['average_amount']}
-        
-        Flagged items: {summary['flagged_items']}
-        
-        Write a concise, professional summary highlighting key points and any concerns.
+        Departments: {list(summary.get('department_breakdown', {}).keys())}
+        Flagged items: {len(summary.get('flagged_items', []))}
         """
         
-        response = client.chat.completions.create(
-            model=settings.openai_model,
-            messages=[
-                {"role": "system", "content": "You are a financial analyst summarizing payroll data."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=200
+        # Initialize the model
+        model = genai.GenerativeModel(settings.gemini_model)
+        
+        # Generate content
+        try:
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    max_output_tokens=512,  # Increased to 512 tokens to avoid truncation
+                )
+            )
+            logger.debug("Gemini API call successful", extra={"response_type": type(response).__name__})
+        except Exception as api_error:
+            logger.error(
+                "Gemini API call failed",
+                extra={"error": str(api_error), "error_type": type(api_error).__name__},
+                exc_info=True
+            )
+            raise
+        
+        # Check for safety filters or blocked content
+        finish_reason = None
+        if hasattr(response, 'candidates') and response.candidates:
+            candidate = response.candidates[0]
+            # finish_reason: 1=STOP, 2=MAX_TOKENS, 3=SAFETY, 4=RECITATION, 5=OTHER
+            finish_reason = getattr(candidate, 'finish_reason', None)
+            if finish_reason == 3:  # SAFETY - content was filtered
+                raise ValueError("Content was blocked by safety filters. Try adjusting the prompt.")
+            elif finish_reason == 2:  # MAX_TOKENS - but might still have partial content
+                logger.warning("Response hit max tokens limit, extracting partial content", extra={"finish_reason": finish_reason})
+        
+        # Extract text from response
+        # Handle different response formats
+        narrative = ""
+        
+        # Log response structure for debugging
+        logger.debug(
+            "Gemini API response structure",
+            extra={
+                "has_candidates": hasattr(response, 'candidates'),
+                "candidates_count": len(response.candidates) if hasattr(response, 'candidates') and response.candidates else 0,
+                "finish_reason": finish_reason
+            }
         )
         
-        narrative = response.choices[0].message.content.strip()
+        # Extract text manually from candidates (more reliable than response.text)
+        if hasattr(response, 'candidates') and response.candidates:
+            text_parts = []
+            for candidate in response.candidates:
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text'):
+                            text_parts.append(part.text)
+                elif hasattr(candidate, 'text'):
+                    # Alternative: direct text attribute
+                    text_parts.append(candidate.text)
+            narrative = ' '.join(text_parts).strip() if text_parts else ""
+            logger.debug("Extracted narrative from candidates", extra={"length": len(narrative), "parts_count": len(text_parts)})
+        
+        # Fallback: try response.text if manual extraction failed
+        if not narrative:
+            try:
+                if hasattr(response, 'text'):
+                    narrative = response.text.strip()
+                    logger.debug("Extracted narrative from response.text", extra={"length": len(narrative)})
+            except (ValueError, AttributeError) as e:
+                logger.debug(f"response.text access failed: {e}")
+        
+        # If still empty, try alternative extraction methods
+        if not narrative:
+            # Try accessing response directly as dict-like
+            if hasattr(response, '__dict__'):
+                logger.debug("Response dict keys", extra={"keys": list(response.__dict__.keys())})
+            
+            # Try to get text from prompt_feedback or other fields
+            if hasattr(response, 'prompt_feedback'):
+                logger.warning("Prompt feedback available", extra={"feedback": str(response.prompt_feedback)})
+        
+        if not narrative:
+            # Log full response for debugging (truncated)
+            response_str = str(response)[:500] if response else "None"
+            logger.error(
+                "Empty response from Gemini API",
+                extra={
+                    "response_preview": response_str,
+                    "response_type": type(response).__name__
+                }
+            )
+            raise ValueError("Empty response from Gemini API - no text content returned")
         
         logger.info(
             "AI narrative generated",
